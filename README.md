@@ -35,12 +35,13 @@ Program usage
     the key corresponds to a label.
 
     key, label description:
-      * q visual memory
-      * a visual imagination
-      * w auditory memory
-      * s auditory imagination
-      * e
-      * d
+
+    * q visual memory
+    * a visual imagination
+    * w auditory memory
+    * s auditory imagination
+    * e
+    * d
 
     Please put a newline after each logged occurence.
 
