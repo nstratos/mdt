@@ -18,9 +18,9 @@ Program usage
 4. Input end hz in numbers, say '15,38' (2 decimals).
 5. Press Start button. This starts the timer for total running time.
 
-   Now the program will start and record keypresses for the q,w,e,a,s,d keys.
+    Now the program will start and record keypresses for the q,w,e,a,s,d keys.
 
-   Whenever one such key is pressed it will log the exact hz, the time   plus the label associated with a key. (and maybe calculation Base hz too for linear base hz progression)
+    Whenever one such key is pressed it will log the exact hz, the time   plus the label associated with a key. (and maybe calculation Base hz too for linear base hz progression)
 
 6. 'w' is pressed, log says: 15,05hz @ 80 base hz, on 04:30 Visual memory 
 
