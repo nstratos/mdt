@@ -39,14 +39,14 @@ Program usage
     * e
     * d
 
-    Please put a newline after each logged occurence.
+    Use a newline after each logged occurence.
 
-7.  Program stops after running time has passed, or when Stopped by user pressing Stop button.
+7.  Program stops after running time has passed, or when stopped by user pressing Stop button.
 
 8.  It will write a log file in .txt in its directory, preferably named: S-E hz day date month time
     where S is start hz and E is end hz, so for example file name: '15-19 hz wed 27 dec 22.09.txt'
 
-    Please put at the top of the text file the filename and the mode used (A or B)
+    Put at the top of the text file the filename and the mode used (A or B)
 
 TODO
 ----
