@@ -34,15 +34,15 @@ Program usage
 
     the key corresponds to a label.
 
-   key, label description:
-   * q visual memory
-   * a visual imagination
-   * w auditory memory
-   * s auditory imagination
-   * e
-   * d
+    key, label description:
+    * q visual memory
+    * a visual imagination
+    * w auditory memory
+    * s auditory imagination
+    * e
+    * d
 
-   Please put a newline after each logged occurence.
+    Please put a newline after each logged occurence.
 
 7. Program stops after running time has passed, or when Stopped by user pressing Stop button.
 
