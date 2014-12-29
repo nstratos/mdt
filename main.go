@@ -88,7 +88,8 @@ func main() {
 	for {
 		select {
 		case l := <-letter:
-			printText(0, 0, "Got "+strconv.QuoteRune(l))
+			// printText(0, 0, "Got "+strconv.QuoteRune(l))
+			printText(0, 0, fmt.Sprintf("Got %v", strconv.QuoteRune(l)))
 			termbox.Flush()
 		case <-done:
 			fmt.Println("Done")
@@ -133,6 +134,9 @@ func captureKeys(letter chan rune, done chan bool) {
 	for {
 		ev := termbox.PollEvent()
 		switch {
+		case ev.Key == termbox.KeyEsc:
+			done <- true
+			return
 		case ev.Key == termbox.KeySpace:
 			started = !started
 			if started {
@@ -144,9 +148,6 @@ func captureKeys(letter chan rune, done chan bool) {
 			}
 		case ev.Ch < 128 && started:
 			letter <- ev.Ch
-		case ev.Key == termbox.KeyEsc:
-			done <- true
-			return
 		}
 	}
 
