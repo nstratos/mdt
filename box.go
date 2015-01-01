@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -58,8 +59,6 @@ func (c *Config) Load() error {
 	return nil
 }
 
-var captures = make([]rune, 0)
-
 func main() {
 	// Loading configuration from config.json
 	c := Config{}
@@ -83,182 +82,86 @@ func main() {
 	_, y = printOptions(x, y+2, c)
 	termbox.Flush()
 
-	/*started := false
-		//lock := false
-		timerDone := make(chan bool)
-		defer close(timerDone)
-	captureloop:
-		for {
-			select {
-			case <-timerDone:
-				printText(0, 0, "--------------------------------------------------")
-				termbox.Flush()
-				started = false
-				break captureloop
-			default:
-				//printText(0, 0, fmt.Sprintf("CAPTURE LOOP started=%v, lock=%v", started, lock))
-				//termbox.Flush()
-				switch ev := termbox.PollEvent(); ev.Type {
-				case termbox.EventKey:
-					switch {
-					// Esc -> quit
-					case ev.Key == termbox.KeyEsc:
-						break captureloop
-					// Capturing + space -> session end
-					case started && (ev.Key == termbox.KeySpace):
-						started = false
-						_, y = printText(0, 0, "Session stopped manually")
-						termbox.Flush()
-						//if !lock {
-						timerDone <- true
-						//}
-						break captureloop
-					case !started && (ev.Key == termbox.KeySpace):
-						started = true
-						//lock = true
-						_, y = printText(0, 0, "Session started")
-						termbox.Flush()
-						//startTimer(c.Duration * 60)
-						go startTimer(5, timerDone)
-						//startTimerAlt(5)
-						//break captureloop
-					case started && supportedLabel(ev.Ch):
-						printText(0, 0, fmt.Sprintf("Got %v", strconv.QuoteRune(ev.Ch)))
-						termbox.Flush()
-					}
-				case termbox.EventError:
-					log.Println(ev.Err)
-				}
-			}
-
-		}
-	uiloop:
-		for {
+	started := false
+	//lock := false
+	timerDone := make(chan bool)
+	defer close(timerDone)
+captureloop:
+	for {
+		select {
+		case <-timerDone:
+			printText(0, 0, "--------------------------------------------------")
+			termbox.Flush()
+			started = false
+			break captureloop
+		default:
+			//printText(0, 0, fmt.Sprintf("CAPTURE LOOP started=%v, lock=%v", started, lock))
+			//termbox.Flush()
 			switch ev := termbox.PollEvent(); ev.Type {
 			case termbox.EventKey:
 				switch {
+				// Esc -> quit
 				case ev.Key == termbox.KeyEsc:
-					break uiloop
+					break captureloop
+				// Capturing + space -> session end
+				case started && (ev.Key == termbox.KeySpace):
+					started = false
+					_, y = printText(0, 0, "Session stopped manually")
+					termbox.Flush()
+					//if !lock {
+					timerDone <- true
+					//}
+					break captureloop
+				case !started && (ev.Key == termbox.KeySpace):
+					started = true
+					//lock = true
+					_, y = printText(0, 0, "Session started")
+					termbox.Flush()
+					//startTimer(c.Duration * 60)
+					go startTimer(5, timerDone)
+					//startTimerAlt(5)
+					//break captureloop
+				case started && supportedLabel(ev.Ch):
+					printText(0, 0, fmt.Sprintf("Got %v", strconv.QuoteRune(ev.Ch)))
+					termbox.Flush()
 				}
 			case termbox.EventError:
 				log.Println(ev.Err)
 			}
-		}*/
+		}
 
-	letter := make(chan rune)
-	start := make(chan bool)
+	}
+uiloop:
+	for {
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			switch {
+			case ev.Key == termbox.KeyEsc:
+				break uiloop
+			}
+		case termbox.EventError:
+			log.Println(ev.Err)
+		}
+	}
+
+	/*letter := make(chan rune)
 	done := make(chan bool)
-	endTimer := make(chan bool)
 	defer close(letter)
-	defer close(start)
 	defer close(done)
-	defer close(endTimer)
-	go captureEvents(letter, start, done)
-	capturing := false
-	//loop:
+	go captureKeys(letter, done)
 	for {
 		select {
 		case l := <-letter:
+			// printText(0, 0, "Got "+strconv.QuoteRune(l))
 			printText(0, 0, fmt.Sprintf("Got %v", strconv.QuoteRune(l)))
 			termbox.Flush()
-			if capturing {
-				record(l)
-			}
-		case capturing = <-start:
-			printText(0, 0, fmt.Sprintf("Started: %v", capturing))
-			termbox.Flush()
-			if capturing {
-				go timer(5, endTimer)
-			} else {
-				//_, ok := <-endTimer
-				//printText(0, 2, fmt.Sprintf("OK: %v", ok))
-				endTimer <- true
-
-				//break loop
-			}
-		case <-endTimer:
-			printText(0, 0, "END TIMER")
-			termbox.Flush()
-			//break loop
 		case <-done:
-			printText(0, 0, "Done")
-			termbox.Flush()
-			showResults()
-			//break loop
-		}
-	}
-
-	//<-done
-}
-
-func captureEvents(letter chan rune, start chan bool, done chan bool) {
-	started := false
-	//eventsloop:
-	for {
-		ev := termbox.PollEvent()
-		switch {
-		case ev.Key == termbox.KeyEsc:
-			done <- true
-			//return
-		//break eventsloop
-		case ev.Key == termbox.KeySpace:
-			if !started {
-				started = true
-				start <- true
-			} else {
-				started = false
-				start <- false
-			}
-		case supportedLabel(ev.Ch):
-			letter <- ev.Ch
-		}
-	}
-}
-
-func showResults() {
-	printText(0, 0, fmt.Sprintf("Results: %v", captures))
-	termbox.Flush()
-	// resultsloop:
-	// 	for {
-	// 		ev := termbox.PollEvent()
-	// 		switch {
-	// 		case ev.Key == termbox.KeyEsc:
-	// 			break resultsloop
-	// 		}
-	// 	}
-}
-
-func record(r rune) {
-	captures = append(captures, r)
-	printText(0, 0, fmt.Sprintf("Recorded %v", strconv.QuoteRune(r)))
-	termbox.Flush()
-}
-
-func timer(maxSeconds int, end chan bool) {
-	min, sec := 0, 0
-	expired := time.NewTimer(time.Second * time.Duration(maxSeconds)).C
-	tick := time.NewTicker(time.Second).C
-	for {
-		select {
-		case <-end:
-			printText(0, 1, "timer stopped")
-			termbox.Flush()
+			fmt.Println("Done")
 			return
-		case <-expired:
-			printText(0, 1, "Session ended")
-			termbox.Flush()
-			end <- true
-			return
-		case <-tick:
-			if sec == 59 {
-				sec = -1
-				min += 1
-			}
-			sec += 1
-			printText(0, 1, fmt.Sprintf("%d min %d sec", min, sec))
-			termbox.Flush()
 		}
+
 	}
+	*/
 }
 
 func captureKeysAlt(letter chan rune, done chan bool) {
@@ -294,11 +197,11 @@ func startTimerAlt(maxSeconds int) {
 	go captureKeysAlt(letter, done)
 
 	min, sec := 0, 0
-	expired := time.NewTimer(time.Second * time.Duration(maxSeconds)).C
-	tick := time.NewTicker(time.Second).C
+	timeCh := time.NewTimer(time.Second * time.Duration(maxSeconds)).C
+	tickCh := time.NewTicker(time.Second).C
 	for {
 		select {
-		case <-expired:
+		case <-timeCh:
 			printText(0, 0, "Session ended")
 			termbox.Flush()
 			//done <- true
@@ -308,7 +211,7 @@ func startTimerAlt(maxSeconds int) {
 			printText(0, 0, "manual stop.................")
 			termbox.Flush()
 			return
-		case <-tick:
+		case <-tickCh:
 			if sec == 59 {
 				sec = -1
 				min += 1
@@ -323,20 +226,20 @@ func startTimerAlt(maxSeconds int) {
 	}
 }
 
-func startTimer(maxSeconds int, end chan bool) {
+func startTimer(maxSeconds int, doneCh chan bool) {
 	min, sec := 0, 0
-	expired := time.NewTimer(time.Second * time.Duration(maxSeconds)).C
-	tick := time.NewTicker(time.Second).C
+	timeCh := time.NewTimer(time.Second * time.Duration(maxSeconds)).C
+	tickCh := time.NewTicker(time.Second).C
 	for {
 		select {
-		case <-end:
+		case <-doneCh:
 			return
-		case <-expired:
+		case <-timeCh:
 			printText(0, 0, "Session ended")
 			termbox.Flush()
-			end <- true
+			doneCh <- true
 			return
-		case <-tick:
+		case <-tickCh:
 			if sec == 59 {
 				sec = -1
 				min += 1
@@ -389,4 +292,28 @@ func supportedLabel(key rune) bool {
 		return true
 	}
 	return false
+}
+
+func captureKeys(letter chan rune, done chan bool) {
+	started := false
+	for {
+		ev := termbox.PollEvent()
+		switch {
+		case ev.Key == termbox.KeyEsc:
+			done <- true
+			return
+		case ev.Key == termbox.KeySpace:
+			started = !started
+			if started {
+				printText(0, 0, "Started")
+				termbox.Flush()
+			} else {
+				printText(0, 0, "Stopped")
+				termbox.Flush()
+			}
+		case ev.Ch < 128 && started:
+			letter <- ev.Ch
+		}
+	}
+
 }
