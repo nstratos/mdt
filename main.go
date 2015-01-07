@@ -58,8 +58,41 @@ func (c *Config) Load() error {
 	return nil
 }
 
+var labels = map[rune]string{
+	'a': "Visual imagination",
+	'd': "?",
+	'e': "?",
+	'q': "Visual memory",
+	's': "Auditory imagination",
+	'w': "Auditory memory",
+}
+
+type Capture struct {
+	Value   rune
+	Seconds int
+	Hz      float64
+}
+
+func (c *Capture) Label() string {
+	return labels[c.Value]
+}
+
+func (c *Capture) Timestamp() string {
+	min := c.Seconds / 60
+	sec := c.Seconds % 60
+	m := fmt.Sprintf("%v", min)
+	if min < 10 {
+		m = fmt.Sprintf("0%v", min)
+	}
+	s := fmt.Sprintf("%v", sec)
+	if sec < 10 {
+		s = fmt.Sprintf("0%v", sec)
+	}
+	return fmt.Sprintf("%v:%v", m, s)
+}
+
 // Global holder of captured key presses.
-var captures = make([]rune, 0)
+var captures = make([]Capture, 0)
 
 // Current line to print text.
 var line = 2
@@ -161,16 +194,17 @@ func main() {
 	capturing := false
 	//timerRunning := false
 	timerEnded := false
-	//loop:
+loop:
 	for {
 		select {
-		case l := <-letter:
-			printText(0, 0, fmt.Sprintf("Got %v", strconv.QuoteRune(l)))
-			termbox.Flush()
-			if capturing {
-				record(l)
-			}
-		case capturing = <-start:
+		// case l := <-letter:
+		// 	printText(0, 0, fmt.Sprintf("Got %v", strconv.QuoteRune(l)))
+		// 	termbox.Flush()
+		// 	if capturing {
+		// 		record(l)
+		// 	}
+		case <-start:
+			capturing = !capturing
 			printTextNext(fmt.Sprintf("1. capturing: %v, timerEnded: %v", capturing, timerEnded))
 			termbox.Flush()
 			if capturing {
@@ -178,7 +212,7 @@ func main() {
 				//printText(0, 2, fmt.Sprintf("1. capturing: %v, timerRunning: %v", capturing, timerRunning))
 				printTextNext("STARTING NEW TIMER")
 				termbox.Flush()
-				go timer(5, endTimer)
+				go timer(5, letter, endTimer, c)
 				timerEnded = false
 			}
 
@@ -188,7 +222,7 @@ func main() {
 				//_, ok := <-endTimer
 				//printText(0, 2, fmt.Sprintf("OK: %v", ok))
 				endTimer <- true
-
+				showResults(c)
 				//break loop
 			}
 			if !capturing && timerEnded {
@@ -199,24 +233,28 @@ func main() {
 			capturing = false
 			printTextNext(fmt.Sprintf("END TIMER capturing: %v, timerEnded: %v", capturing, timerEnded))
 			termbox.Flush()
+			showResults(c)
 			//break loop
 		case <-done:
-			printTextNext("Done")
-			termbox.Flush()
-			showResults()
-			//break loop
+			break loop
 		}
 	}
 
 	//<-done
 }
 
-func timer(maxSeconds int, end chan bool) {
+func timer(maxSeconds int, letter chan rune, end chan bool, c Config) {
+	seconds := 0
 	min, sec := 0, 0
 	expired := time.NewTimer(time.Second * time.Duration(maxSeconds)).C
 	tick := time.NewTicker(time.Second).C
 	for {
 		select {
+		case l := <-letter:
+			capture := Capture{Value: l, Seconds: seconds, Hz: currentHz(seconds, c)}
+			captures = append(captures, capture)
+			printText(0, 0, fmt.Sprintf("Recorded %v (%v)", strconv.QuoteRune(l), currentHz(seconds, c)))
+			termbox.Flush()
 		case <-end:
 			printText(0, 1, "timer stopped")
 			termbox.Flush()
@@ -228,6 +266,7 @@ func timer(maxSeconds int, end chan bool) {
 			//close(end)
 			return
 		case <-tick:
+			seconds = seconds + 1
 			if sec == 59 {
 				sec = -1
 				min += 1
@@ -258,8 +297,17 @@ func captureEvents(letter chan rune, start chan bool, done chan bool) {
 	}
 }
 
-func showResults() {
-	printText(0, 0, fmt.Sprintf("Results: %v", captures))
+func currentHz(seconds int, c Config) float64 {
+	return (float64(seconds) * (c.EndHz - c.StartHz) / float64((c.Duration-c.Offset)*60)) + c.StartHz
+}
+
+func showResults(c Config) {
+	printText(0, 0, "RESULTS")
+	l := 1
+	for _, capt := range captures {
+		printText(0, l, fmt.Sprintf("%.2fhz @ %.0f base hz, on %v %v", capt.Hz, c.BaseHz, capt.Timestamp(), capt.Label()))
+		l += 1
+	}
 	termbox.Flush()
 	// resultsloop:
 	// 	for {
@@ -269,12 +317,6 @@ func showResults() {
 	// 			break resultsloop
 	// 		}
 	// 	}
-}
-
-func record(r rune) {
-	captures = append(captures, r)
-	printText(0, 0, fmt.Sprintf("Recorded %v", strconv.QuoteRune(r)))
-	termbox.Flush()
 }
 
 func captureKeysAlt(letter chan rune, done chan bool) {
