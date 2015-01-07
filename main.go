@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"bitbucket.org/nstratos/mdt/draw"
+
 	"github.com/nsf/termbox-go"
 )
 
@@ -108,13 +110,13 @@ func logCaptures(c Config) error {
 	if err != nil {
 		return err
 	}
-	_, err = f.WriteString(fmt.Sprintf("%v\nMode: %v\n", filename, strconv.QuoteRune(c.Mode)))
+	_, err = f.WriteString(fmt.Sprintf("%v\r\nMode: %v\r\n", filename, strconv.QuoteRune(c.Mode)))
 	if err != nil {
 		return err
 	}
 	for _, capt := range captures {
 		_, err = f.WriteString(
-			fmt.Sprintf("%.2fhz @ %.0f base hz, on %v %v\n",
+			fmt.Sprintf("%.2fhz @ %.0f base hz, on %v %v\r\n",
 				capt.Hz, c.BaseHz, capt.Timestamp(), capt.Label()))
 		if err != nil {
 			return err
@@ -138,7 +140,7 @@ func main() {
 	}
 	defer termbox.Close()
 
-	termbox.SetInputMode(termbox.InputEsc)
+	termbox.SetInputMode(termbox.InputEsc | termbox.InputMouse)
 	termbox.SetOutputMode(termbox.OutputNormal)
 	termbox.Clear(termbox.ColorWhite, termbox.ColorDefault)
 
@@ -146,7 +148,10 @@ func main() {
 	x, y := 0, 0
 	_, y = printText(x, y, title)
 	_, y = printText(x, y+2, "Press 'space' to start capturing keys, 'Esc' to quit")
+	keepY := y
 	_, y = printOptions(x, y+2, c)
+	_, y = printKeyLabels(x+25, keepY+2)
+	draw.Box()
 	termbox.Flush()
 
 	letter := make(chan rune)
@@ -234,6 +239,9 @@ func captureEvents(letter chan rune, start chan bool, done chan bool) {
 			start <- started
 		case supportedLabel(ev.Ch):
 			letter <- ev.Ch
+		case ev.Type == termbox.EventMouse:
+			printText(0, 1, fmt.Sprintf("Mouse clicked %d, %d", ev.MouseX, ev.MouseY))
+			termbox.Flush()
 		}
 	}
 }
@@ -260,6 +268,16 @@ func printOptions(x, y int, c Config) (finalX, finalY int) {
 	x, y = printText(x, y+1, fmt.Sprintf("Base: %.2f hz", c.BaseHz))
 	x, y = printText(x, y+1, fmt.Sprintf("Start: %.2f hz", c.StartHz))
 	x, y = printText(x, y+1, fmt.Sprintf("End: %.2f hz", c.EndHz))
+	return x, y
+}
+
+func printKeyLabels(x, y int) (finalX, finalY int) {
+	x, y = printText(x, y, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('q'), labels['q']))
+	x, y = printText(x, y+1, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('a'), labels['a']))
+	x, y = printText(x, y+1, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('w'), labels['w']))
+	x, y = printText(x, y+1, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('s'), labels['s']))
+	x, y = printText(x, y+1, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('e'), labels['e']))
+	x, y = printText(x, y+1, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('d'), labels['d']))
 	return x, y
 }
 

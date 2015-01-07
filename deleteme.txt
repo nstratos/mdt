@@ -1,3 +1,0 @@
-starting to capture...
-this should print the key
-97
