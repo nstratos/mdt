@@ -36,8 +36,8 @@ Program usage
     | a   | visual imagination   |
     | w   | auditory memory      |
     | s   | auditory imagination |
-    | e   |          ?           |
-    | d   |          ?           |
+    | e   | language voice       |
+    | d   | language thought     |
 
     Use a newline after each logged occurence.
 
