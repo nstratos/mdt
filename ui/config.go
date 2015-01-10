@@ -1,4 +1,4 @@
-package draw
+package ui
 
 import (
 	"encoding/json"

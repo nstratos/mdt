@@ -8,18 +8,18 @@ import (
 	"strconv"
 	"time"
 
-	"bitbucket.org/nstratos/mdt/draw"
+	"bitbucket.org/nstratos/mdt/ui"
 
 	"github.com/nsf/termbox-go"
 )
 
 // Global holder of captured key presses.
-var captures = make([]draw.Capture, 0)
+var captures = make([]ui.Capture, 0)
 
 // Logs to .txt file in program's directory, named: S-E hz day date month time
 // where S is start hz and E is end hz, e.g. '15-19 hz wed 27 dec 22.09.txt'
 func logCaptures() error {
-	c := draw.GetConfig()
+	c := ui.GetConfig()
 	if len(captures) == 0 {
 		return nil
 	}
@@ -44,13 +44,13 @@ func logCaptures() error {
 	}
 	// Emptying capture holder.
 	captures = nil
-	captures = make([]draw.Capture, 0)
+	captures = make([]ui.Capture, 0)
 	return nil
 }
 
 func main() {
 
-	if err := draw.Init(); err != nil {
+	if err := ui.Init(); err != nil {
 		log.Println("Could not initialize: ", err)
 		if err := ioutil.WriteFile("debug.txt", []byte(fmt.Sprintf("%s", err)), 0644); err != nil {
 			log.Fatalln(err)
@@ -58,8 +58,8 @@ func main() {
 		}
 		os.Exit(1)
 	}
-	draw.DrawAll()
-	defer draw.Close()
+	ui.DrawAll()
+	defer ui.Close()
 
 	letter := make(chan rune)
 	start := make(chan bool)
@@ -106,13 +106,13 @@ func timer(maxSeconds int, letter chan rune, end chan bool) {
 	seconds := 0
 	expired := time.NewTimer(time.Second * time.Duration(maxSeconds)).C
 	tick := time.NewTicker(time.Second).C
-	draw.UpdateTimer(seconds)
+	ui.UpdateTimer(seconds)
 	for {
 		select {
 		case l := <-letter:
-			capture := draw.Capture{Value: l, Seconds: seconds, Hz: draw.CurrentHz(seconds)}
+			capture := ui.Capture{Value: l, Seconds: seconds, Hz: ui.CurrentHz(seconds)}
 			captures = append(captures, capture)
-			draw.UpdateText(draw.RecordedKeyText(l, seconds))
+			ui.UpdateText(ui.RecordedKeyText(l, seconds))
 		case <-end:
 			return
 		case <-expired:
@@ -120,7 +120,7 @@ func timer(maxSeconds int, letter chan rune, end chan bool) {
 			return
 		case <-tick:
 			seconds += 1
-			draw.UpdateTimer(seconds)
+			ui.UpdateTimer(seconds)
 		}
 	}
 }
@@ -138,13 +138,13 @@ func captureEvents(letter chan rune, start chan bool, done chan bool) {
 		case supportedLabel(ev.Ch):
 			letter <- ev.Ch
 		case ev.Type == termbox.EventMouse:
-			cell := draw.GetCell(ev.MouseX, ev.MouseY)
-			draw.Text(2, 22, fmt.Sprintf("Mouse clicked (%d, %d) = %v", ev.MouseX, ev.MouseY, strconv.QuoteRuneToASCII(cell.Ch)))
-			//input := draw.GetInput(ev.MouseX, ev.MouseX+3, ev.MouseY)
+			cell := ui.GetCell(ev.MouseX, ev.MouseY)
+			ui.Text(2, 22, fmt.Sprintf("Mouse clicked (%d, %d) = %v", ev.MouseX, ev.MouseY, strconv.QuoteRuneToASCII(cell.Ch)))
+			//input := ui.GetInput(ev.MouseX, ev.MouseX+3, ev.MouseY)
 			//printText(2, 22, fmt.Sprintf("Mouse clicked (%d, %d) = %v", ev.MouseX, ev.MouseY, input))
 			termbox.Flush()
 			// case ev.Key == termbox.KeyEnter:
-			// 	draw.Input()
+			// 	ui.Input()
 		}
 	}
 }
