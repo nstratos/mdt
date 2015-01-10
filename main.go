@@ -71,7 +71,7 @@ func main() {
 	_, y = draw.DrawOptions(0, y+1, c)
 	sb := draw.NewStatusBar(0, y+1, 54, "Press 'space' to start capturing keys, 'Esc' to quit.")
 	sb.Draw()
-	_, y = draw.DrawKeyLabels(x+25, keepY+2)
+	draw.DrawKeyLabels(x+25, keepY+1)
 
 	termbox.Flush()
 

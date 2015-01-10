@@ -229,14 +229,69 @@ func DrawOptions(x, y int, c Config) (finalX, finalY int) {
 	return x, y
 }
 
-func DrawKeyLabels(x, y int) (finalX, finalY int) {
-	_, y = Text(x, y, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('q'), Labels['q']))
-	_, y = Text(x, y+1, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('a'), Labels['a']))
-	_, y = Text(x, y+1, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('w'), Labels['w']))
-	_, y = Text(x, y+1, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('s'), Labels['s']))
-	_, y = Text(x, y+1, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('e'), Labels['e']))
-	_, y = Text(x, y+1, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('d'), Labels['d']))
-	return x, y
+func DrawKeyLabel(x, y, w int, label string) {
+	const coldef = termbox.ColorDefault
+	keyWidth := 5
+
+	termbox.SetCell(x, y+1, '║', coldef, coldef)
+	termbox.SetCell(x, y+2, '╚', coldef, coldef)
+
+	fill(x+1, y+2, keyWidth, 1, termbox.Cell{Ch: '═'})
+	termbox.SetCell(x+keyWidth+1, y+0, '╤', coldef, coldef)
+	termbox.SetCell(x+keyWidth+1, y+1, '│', coldef, coldef)
+	termbox.SetCell(x+keyWidth+1, y+2, '╧', coldef, coldef)
+	fill(x+keyWidth+2, y+0, w, 1, termbox.Cell{Ch: '═'})
+	fill(x+keyWidth+2, y+2, w, 1, termbox.Cell{Ch: '═'})
+
+	termbox.SetCell(x+keyWidth+2+w, y+1, '║', coldef, coldef)
+	termbox.SetCell(x+keyWidth+2+w, y+2, '╝', coldef, coldef)
+	Text(x+keyWidth+2, y+1, label)
+}
+
+func DrawKeyLabels(x, y int) {
+	const coldef = termbox.ColorDefault
+	keyWidth := 5
+	w := maxLabelLength() + 6
+
+	termbox.SetCell(x, y+0, '╔', coldef, coldef)
+	fill(x+1, y+0, keyWidth, 1, termbox.Cell{Ch: '═'})
+	termbox.SetCell(x+keyWidth+2+w, y+0, '╗', coldef, coldef)
+	DrawKeyLabel(x, y+0, w, fmt.Sprintf("┊ %v = %v", strconv.QuoteRuneToASCII('q'), Labels['q']))
+	DrawKeyLabel(x, y+3, w, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('a'), Labels['a']))
+	DrawKeyLabel(x, y+6, w, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('w'), Labels['w']))
+	DrawKeyLabel(x, y+9, w, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('s'), Labels['s']))
+	DrawKeyLabel(x, y+12, w, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('e'), Labels['e']))
+	DrawKeyLabel(x, y+15, w, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('d'), Labels['d']))
+}
+
+// func DrawKeyLabels(x, y int) (finalX, finalY int) {
+// 	w := maxLabelLength() + 6
+// 	fill(x+0, y+0, w+1, 1, termbox.Cell{Ch: '╌'})
+// 	fill(x+0, y+0, 1, 12, termbox.Cell{Ch: '┊'})
+// 	Text(x+0, y+1, fmt.Sprintf("┊ %v = %v", strconv.QuoteRuneToASCII('q'), Labels['q']))
+// 	fill(x+0, y+2, w+1, 1, termbox.Cell{Ch: '╌'})
+// 	Text(x+1, y+3, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('a'), Labels['a']))
+// 	fill(x+0, y+4, w+1, 1, termbox.Cell{Ch: '╌'})
+// 	Text(x+1, y+5, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('w'), Labels['w']))
+// 	fill(x+0, y+6, w+1, 1, termbox.Cell{Ch: '╌'})
+// 	Text(x+1, y+7, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('s'), Labels['s']))
+// 	fill(x+0, y+8, w+1, 1, termbox.Cell{Ch: '╌'})
+// 	Text(x+1, y+9, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('e'), Labels['e']))
+// 	fill(x+0, y+10, w+1, 1, termbox.Cell{Ch: '╌'})
+// 	Text(x+1, y+11, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('d'), Labels['d']))
+// 	fill(x+0, y+12, w+1, 1, termbox.Cell{Ch: '╌'})
+// 	return x, y
+// }
+
+func maxLabelLength() int {
+	max := 0
+	for _, label := range Labels {
+		l := len(label)
+		if l > max {
+			max = l
+		}
+	}
+	return max
 }
 
 type Config struct {
