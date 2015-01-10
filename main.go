@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -16,7 +18,8 @@ var captures = make([]draw.Capture, 0)
 
 // Logs to .txt file in program's directory, named: S-E hz day date month time
 // where S is start hz and E is end hz, e.g. '15-19 hz wed 27 dec 22.09.txt'
-func logCaptures(c draw.Config) error {
+func logCaptures() error {
+	c := draw.GetConfig()
 	if len(captures) == 0 {
 		return nil
 	}
@@ -46,34 +49,17 @@ func logCaptures(c draw.Config) error {
 }
 
 func main() {
-	// Loading configuration from config.json
-	c := draw.Config{}
-	c.Load()
 
-	// Initializing termbox
-	err := termbox.Init()
-	if err != nil {
-		panic(err)
+	if err := draw.Init(); err != nil {
+		log.Println("Could not initialize: ", err)
+		if err := ioutil.WriteFile("debug.txt", []byte(fmt.Sprintf("%s", err)), 0644); err != nil {
+			log.Fatalln(err)
+			os.Exit(1)
+		}
+		os.Exit(1)
 	}
-	defer termbox.Close()
-
-	termbox.SetInputMode(termbox.InputEsc | termbox.InputMouse)
-	termbox.SetOutputMode(termbox.OutputNormal)
-	termbox.Clear(termbox.ColorWhite, termbox.ColorDefault)
-
-	// Drawing title
-	x, y := 0, 0
-	_, y = draw.Title()
-	mx, my := termbox.Size()
-	draw.Text(0, 0, fmt.Sprintf("%vx%v", mx, my))
-	//_, y = draw.Text(x, y+1, "Press 'space' to start capturing keys, 'Esc' to quit")
-	keepY := y
-	_, y = draw.DrawOptions(0, y+1, c)
-	sb := draw.NewStatusBar(0, y+1, 54, "Press 'space' to start capturing keys, 'Esc' to quit.")
-	sb.Draw()
-	draw.DrawKeyLabels(x+25, keepY+1)
-
-	termbox.Flush()
+	draw.DrawAll()
+	defer draw.Close()
 
 	letter := make(chan rune)
 	start := make(chan bool)
@@ -92,18 +78,16 @@ loop:
 		case <-start:
 			capturing = !capturing
 			if capturing {
-				go timer(5, letter, endTimer, c, *sb)
+				go timer(5, letter, endTimer)
 				timerEnded = false
 			}
 			if !capturing && !timerEnded {
 				endTimer <- true
-				//showResults(c)
-				logCaptures(c)
+				logCaptures()
 			}
 		case timerEnded, _ = <-endTimer:
 			capturing = false
-			//showResults(c)
-			logCaptures(c)
+			logCaptures()
 		case l := <-letter:
 			// If the timer is on, we keep resending the letter to the channel so
 			// that it will be eventually captured by the timer. If the timer is
@@ -118,20 +102,17 @@ loop:
 	}
 }
 
-func timer(maxSeconds int, letter chan rune, end chan bool, c draw.Config, sb draw.StatusBar) {
+func timer(maxSeconds int, letter chan rune, end chan bool) {
 	seconds := 0
-	// min, sec := 0, 0
 	expired := time.NewTimer(time.Second * time.Duration(maxSeconds)).C
 	tick := time.NewTicker(time.Second).C
-	sb.UpdateTimer(seconds)
+	draw.UpdateTimer(seconds)
 	for {
 		select {
 		case l := <-letter:
-			capture := draw.Capture{Value: l, Seconds: seconds, Hz: draw.CurrentHz(seconds, c)}
+			capture := draw.Capture{Value: l, Seconds: seconds, Hz: draw.CurrentHz(seconds)}
 			captures = append(captures, capture)
-			//printText(0, 0, fmt.Sprintf("Recorded %v (%v)", strconv.QuoteRune(l), currentHz(seconds, c)))
-			sb.UpdateText(fmt.Sprintf("Recorded %v (%.2fhz) \"%v\"", strconv.QuoteRune(l), draw.CurrentHz(seconds, c), draw.Labels[l]))
-			//termbox.Flush()
+			draw.UpdateText(draw.RecordedKeyText(l, seconds))
 		case <-end:
 			return
 		case <-expired:
@@ -139,7 +120,7 @@ func timer(maxSeconds int, letter chan rune, end chan bool, c draw.Config, sb dr
 			return
 		case <-tick:
 			seconds += 1
-			sb.UpdateTimer(seconds)
+			draw.UpdateTimer(seconds)
 		}
 	}
 }

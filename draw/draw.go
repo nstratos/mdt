@@ -1,11 +1,8 @@
 package draw
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"strconv"
-	"strings"
 
 	"github.com/nsf/termbox-go"
 )
@@ -26,8 +23,359 @@ const title = `           _ _
                  
 `
 
-func Title() (maxX, maxY int) {
-	return Text(0, 0, title)
+var cells [][]Cell
+var inputs []*Input
+var keys []*KeyLabel
+var statusBar *StatusBar
+var config Config
+
+const inputLabelWidth = 10
+const inputWidth = 9
+const keyLabelWidth = 3
+const keyWidth = 21
+const statusBarWidth = 54
+
+// Must be called before any other function.
+func Init() error {
+	if err := initConfig(); err != nil {
+		return err
+	}
+	if err := initTermbox(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Loading configuration from config.json
+func initConfig() error {
+	config = Config{}
+	err := config.Load()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Initializing termbox
+func initTermbox() error {
+	err := termbox.Init()
+	if err != nil {
+		return err
+	}
+	termbox.SetInputMode(termbox.InputEsc | termbox.InputMouse)
+	termbox.SetOutputMode(termbox.OutputNormal)
+	termbox.Clear(termbox.ColorWhite, termbox.ColorDefault)
+	return nil
+}
+
+func Close() {
+	termbox.Close()
+}
+
+func DrawAll() {
+	_, keysY := drawTitle(0, 0)
+	keysX, sbY := drawInputs(0, keysY+1)
+	_, _ = drawKeys(keysX+3, keysY+1)
+	_, _ = drawStatusBar(0, sbY+1)
+}
+
+func drawTitle(x, y int) (maxX, maxY int) {
+	return text(x, y, title)
+}
+
+func drawStatusBar(x, y int) (maxX, maxY int) {
+	sbw := statusBarWidth
+	statusBar = NewStatusBar(x, y, sbw, "Press 'space' to start capturing keys, 'Esc' to quit.")
+	statusBar.Draw()
+	return statusBar.MaxX(), statusBar.MaxY()
+}
+
+func drawInputs(x, y int) (maxX, maxY int) {
+	const lw = inputLabelWidth
+	const w = inputWidth
+	in1 := NewInput(x, y+0, lw, "Mode", w, config.ModeS(), false)
+	in2 := NewInput(x, y+2, lw, "TotalTime", w, config.TotalTimeS(), true)
+	in3 := NewInput(x, y+4, lw, "Offset", w, config.OffsetS(), true)
+	in4 := NewInput(x, y+6, lw, "BaseHz", w, config.BaseHzS(), true)
+	in5 := NewInput(x, y+8, lw, "StartHz", w, config.StartHzS(), true)
+	in6 := NewInput(x, y+10, lw, "EndHz", w, config.EndHzS(), true)
+	inputs = nil
+	inputs = append(inputs, in1, in2, in3, in4, in5, in6)
+	for _, in := range inputs {
+		in.Draw()
+	}
+	in6.Selected()
+	return in6.MaxX(), in6.MaxY()
+}
+
+func drawKeys(x, y int) (maxX, maxY int) {
+	const lw = keyLabelWidth
+	const w = keyWidth
+	k1 := NewKeyLabel(x, y+0, lw, rtoa('q'), w, Labels['q'], false)
+	k2 := NewKeyLabel(x, y+2, lw, rtoa('a'), w, Labels['a'], true)
+	k3 := NewKeyLabel(x, y+4, lw, rtoa('w'), w, Labels['w'], true)
+	k4 := NewKeyLabel(x, y+6, lw, rtoa('s'), w, Labels['s'], true)
+	k5 := NewKeyLabel(x, y+8, lw, rtoa('e'), w, Labels['e'], true)
+	k6 := NewKeyLabel(x, y+10, lw, rtoa('d'), w, Labels['d'], true)
+	keys = append(keys, k1, k2, k3, k4, k5, k6)
+	for _, k := range keys {
+		k.Draw()
+	}
+	return k6.MaxX(), k6.MaxY()
+}
+
+type Cell struct {
+	Input *Input
+	termbox.Cell
+}
+
+func Cells() [][]Cell {
+	mx, my := termbox.Size()
+	cellBuffer := termbox.CellBuffer()
+	cells := make([][]Cell, mx)
+	for k := range cells {
+		cells[k] = make([]Cell, my)
+	}
+	i, j := 0, 0
+	for _, c := range cellBuffer {
+		if i == mx {
+			j += 1
+			i = 0
+		}
+		cells[i][j].Ch = c.Ch
+		cells[i][j].Fg = c.Fg
+		cells[i][j].Bg = c.Bg
+		i += 1
+	}
+	return cells
+}
+
+func GetCell(x, y int) Cell {
+	c := Cells()
+	return c[x][y]
+}
+
+func GetInput(startX, endX, y int) string {
+	c := Cells()
+	runes := make([]rune, 0)
+	for x := startX; x <= endX; x++ {
+		runes = append(runes, c[x][y].Ch)
+	}
+	return string(runes)
+}
+
+type StatusBar struct {
+	X          int
+	Y          int
+	Width      int
+	Text       string
+	timerWidth int
+}
+
+func NewStatusBar(x, y, width int, text string) *StatusBar {
+	return &StatusBar{x, y, width, text, 6}
+}
+
+func (sb StatusBar) MaxX() int {
+	return sb.X + sb.timerWidth + 2 + sb.Width
+}
+
+func (sb StatusBar) MaxY() int {
+	return sb.Y + 2
+}
+
+func (sb StatusBar) Draw() {
+	const coldef = termbox.ColorDefault
+	x := sb.X
+	y := sb.Y
+	width := sb.Width
+	t := sb.Text
+	timerWidth := sb.timerWidth
+
+	// unicode box drawing chars around the edit box
+	termbox.SetCell(x, y+0, '╔', coldef, coldef)
+	termbox.SetCell(x, y+1, '║', coldef, coldef)
+	termbox.SetCell(x, y+2, '╚', coldef, coldef)
+	fill(x+1, y+0, timerWidth, 1, '═')
+	fill(x+1, y+2, timerWidth, 1, '═')
+	termbox.SetCell(x+timerWidth+1, y+0, '╤', coldef, coldef)
+	termbox.SetCell(x+timerWidth+1, y+1, '│', coldef, coldef)
+	termbox.SetCell(x+timerWidth+1, y+2, '╧', coldef, coldef)
+	fill(x+timerWidth+2, y+0, width, 1, '═')
+	fill(x+timerWidth+2, y+2, width, 1, '═')
+	termbox.SetCell(x+timerWidth+2+width, y+0, '╗', coldef, coldef)
+	termbox.SetCell(x+timerWidth+2+width, y+1, '║', coldef, coldef)
+	termbox.SetCell(x+timerWidth+2+width, y+2, '╝', coldef, coldef)
+	text(x+timerWidth+2, y+1, t)
+
+	termbox.Flush()
+}
+
+func (sb StatusBar) UpdateTimer(seconds int) {
+	text(sb.X+1, sb.Y+1, formatTimer(seconds))
+	termbox.Flush()
+}
+
+func (sb StatusBar) UpdateText(t string) {
+	//Text(sb.X+sb.timerWidth+2, sb.Y+1, text[0:sb.Width]) // panics for some reason
+	fill(sb.X+sb.timerWidth+2, sb.Y+1, sb.Width, 1, ' ')
+	text(sb.X+sb.timerWidth+2, sb.Y+1, t)
+	termbox.Flush()
+}
+
+func UpdateTimer(seconds int) {
+	if statusBar != nil {
+		statusBar.UpdateTimer(seconds)
+	}
+}
+
+func UpdateText(text string) {
+	if statusBar != nil {
+		statusBar.UpdateText(text)
+	}
+}
+
+func RecordedKeyText(key rune, seconds int) string {
+	return fmt.Sprintf("Recorded %v (%.2fhz) \"%v\"", strconv.QuoteRune(key), CurrentHz(seconds), Labels[key])
+}
+
+type Input struct {
+	X      int
+	Y      int
+	LabelW int
+	LabelT string
+	W      int
+	T      string
+	a      bool
+	S      bool
+}
+
+func NewInput(x, y, labelW int, labelT string, w int, t string, a bool) *Input {
+	return &Input{x, y, labelW, labelT, w, t, a, false}
+}
+
+func (in Input) Start() int {
+	return in.X + in.LabelW + 3
+}
+
+func (in Input) End() int {
+	return in.Start() + in.W
+}
+func (in Input) MaxX() int {
+	return in.X + in.LabelW + 3 + in.W
+}
+
+func (in Input) MaxY() int {
+	return in.Y + 2
+}
+
+func (in Input) Draw() {
+	x := in.X
+	y := in.Y
+	lw := in.LabelW
+	lt := in.LabelT
+	w := in.W
+	t := in.T
+
+	fill(x, y+0, 1, 1, '┌')
+	fill(x, y+1, 1, 1, '│')
+	fill(x, y+2, 1, 1, '└')
+	fill(x+1, y+0, lw, 1, '─')
+	text(x+1, y+1, lt)
+	fill(x+1, y+2, lw, 1, '─')
+	fill(x+lw+1, y+0, 1, 1, '┐')
+	fill(x+lw+1, y+1, 1, 1, '│')
+	fill(x+lw+1, y+2, 1, 1, '┘')
+	fill(x+lw+2, y+0, 1, 1, ' ')
+	fill(x+lw+2, y+1, 1, 1, ' ')
+	fill(x+lw+2, y+2, 1, 1, ' ')
+	fill(x+lw+3, y+0, w, 1, ' ')
+	text(x+lw+3, y+1, t)
+	fill(x+lw+3, y+2, w, 1, ' ')
+	fill(x+lw+3+w, y+0, 1, 1, ' ')
+	fill(x+lw+3+w, y+1, 1, 1, ' ')
+	fill(x+lw+3+w, y+2, 1, 1, ' ')
+	if in.a {
+		fill(x, y+0, 1, 1, '├')
+		fill(x+lw+1, y+0, 1, 1, '┤')
+	}
+}
+
+func (in Input) Selected() {
+	x := in.X
+	y := in.Y
+	lw := in.LabelW
+	w := in.W
+
+	Fill(x+lw+2, y+0, 1, 1, '┌')
+	Fill(x+lw+2, y+1, 1, 1, '│')
+	Fill(x+lw+2, y+2, 1, 1, '└')
+	Fill(x+lw+3, y+0, w, 1, '─')
+	Fill(x+lw+3, y+2, w, 1, '─')
+	Fill(x+lw+3+w, y+0, 1, 1, '┐')
+	Fill(x+lw+3+w, y+1, 1, 1, '│')
+	Fill(x+lw+3+w, y+2, 1, 1, '┘')
+	termbox.Flush()
+}
+
+type KeyLabel struct {
+	X      int
+	Y      int
+	LabelW int
+	LabelT string
+	W      int
+	T      string
+	a      bool
+	S      bool
+}
+
+func NewKeyLabel(x, y, labelW int, labelT string, w int, t string, a bool) *KeyLabel {
+	return &KeyLabel{x, y, labelW, labelT, w, t, a, false}
+}
+
+func (kl KeyLabel) Start() int {
+	return kl.X + kl.LabelW + 3
+}
+
+func (kl KeyLabel) End() int {
+	return kl.Start() + kl.W
+}
+func (kl KeyLabel) MaxX() int {
+	return kl.X + kl.LabelW + 3 + kl.W
+}
+
+func (kl KeyLabel) MaxY() int {
+	return kl.Y + 2
+}
+
+func (kl KeyLabel) Draw() {
+	const coldef = termbox.ColorDefault
+	x := kl.X
+	y := kl.Y
+	lw := kl.LabelW
+	lt := kl.LabelT
+	w := kl.W
+	t := kl.T
+
+	fill(x, y+0, 1, 1, '┌')
+	fill(x, y+1, 1, 1, '│')
+	fill(x, y+2, 1, 1, '└')
+	fill(x+1, y+0, lw, 1, '─')
+	text(x+1, y+1, lt)
+	fill(x+1, y+2, lw, 1, '─')
+	fill(x+lw+1, y+0, 1, 1, '─')
+	fill(x+lw+1, y+1, 1, 1, ' ')
+	fill(x+lw+1, y+2, 1, 1, '─')
+	fill(x+lw+2, y+0, w, 1, '─')
+	text(x+lw+2, y+1, t)
+	fill(x+lw+2, y+2, w, 1, '─')
+	fill(x+lw+2+w, y+0, 1, 1, '┐')
+	fill(x+lw+2+w, y+1, 1, 1, '│')
+	fill(x+lw+2+w, y+2, 1, 1, '┘')
+	if kl.a {
+		fill(x, y+0, 1, 1, '├')
+		fill(x+lw+2+w, y+0, 1, 1, '┤')
+	}
 }
 
 type Capture struct {
@@ -42,292 +390,4 @@ func (c *Capture) Label() string {
 
 func (c *Capture) Timestamp() string {
 	return formatTimer(c.Seconds)
-}
-
-func formatTimer(seconds int) string {
-	min := seconds / 60
-	sec := seconds % 60
-	m := fmt.Sprintf("%v", min)
-	if min < 10 {
-		m = fmt.Sprintf("0%v", min)
-	}
-	s := fmt.Sprintf("%v", sec)
-	if sec < 10 {
-		s = fmt.Sprintf("0%v", sec)
-	}
-	return fmt.Sprintf("%v:%v", m, s)
-}
-
-func cells() [][]termbox.Cell {
-	mx, my := termbox.Size()
-	cells := termbox.CellBuffer()
-	cells2d := make([][]termbox.Cell, mx)
-	for k := range cells2d {
-		cells2d[k] = make([]termbox.Cell, my)
-	}
-	i, j := 0, 0
-	for _, c := range cells {
-		if i == mx {
-			j += 1
-			i = 0
-		}
-		cells2d[i][j] = c
-		i += 1
-	}
-	return cells2d
-}
-
-func GetCell(x, y int) termbox.Cell {
-	c := cells()
-	return c[x][y]
-}
-
-func GetInput(startX, endX, y int) string {
-	c := cells()
-	//l := endY - startY
-	runes := make([]rune, 0)
-	//i := 0
-	for x := startX; x <= endX; x++ {
-		//runes[i] = c[x][y].Ch
-		//i += 1
-		runes = append(runes, c[x][y].Ch)
-	}
-	return string(runes)
-}
-
-// func Box() {
-// 	const coldef = termbox.ColorDefault
-// 	//termbox.Clear(coldef, coldef)
-// 	_, h := termbox.Size()
-
-// 	midy := h - 2
-// 	//midx := (w - edit_box_width) / 2
-// 	midx := 1
-
-// 	// unicode box drawing chars around the edit box
-// 	termbox.SetCell(midx-1, midy, '│', coldef, coldef)
-// 	termbox.SetCell(midx+edit_box_width, midy, '│', coldef, coldef)
-// 	termbox.SetCell(midx-1, midy-1, '╭', coldef, coldef)
-// 	termbox.SetCell(midx-1, midy+1, '╰', coldef, coldef)
-// 	termbox.SetCell(midx+edit_box_width, midy-1, '╮', coldef, coldef)
-// 	termbox.SetCell(midx+edit_box_width, midy+1, '╯', coldef, coldef)
-// 	fill(midx, midy-1, edit_box_width, 1, termbox.Cell{Ch: '─'})
-// 	fill(midx, midy+1, edit_box_width, 1, termbox.Cell{Ch: '─'})
-
-// 	//edit_box.Draw(midx, midy, edit_box_width, 1)
-// 	//termbox.SetCursor(midx+edit_box.CursorX(), midy)
-// 	termbox.SetCursor(midx, midy)
-
-// 	tbprint(midx+6, midy+3, coldef, coldef, "Press ESC to quit")
-// 	//termbox.Flush()
-// }
-
-type StatusBar struct {
-	X          int
-	Y          int
-	Width      int
-	Text       string
-	timerWidth int
-}
-
-func NewStatusBar(x, y, width int, text string) *StatusBar {
-	return &StatusBar{x, y, width, text, 6}
-}
-
-func (sb StatusBar) Draw() {
-	const coldef = termbox.ColorDefault
-	x := sb.X
-	y := sb.Y
-	width := sb.Width
-	text := sb.Text
-	timerWidth := sb.timerWidth
-
-	// unicode box drawing chars around the edit box
-	termbox.SetCell(x, y+0, '╔', coldef, coldef)
-	termbox.SetCell(x, y+1, '║', coldef, coldef)
-	termbox.SetCell(x, y+2, '╚', coldef, coldef)
-	fill(x+1, y+0, timerWidth, 1, termbox.Cell{Ch: '═'})
-	fill(x+1, y+2, timerWidth, 1, termbox.Cell{Ch: '═'})
-	termbox.SetCell(x+timerWidth+1, y+0, '╤', coldef, coldef)
-	termbox.SetCell(x+timerWidth+1, y+1, '│', coldef, coldef)
-	termbox.SetCell(x+timerWidth+1, y+2, '╧', coldef, coldef)
-	fill(x+timerWidth+2, y+0, width, 1, termbox.Cell{Ch: '═'})
-	fill(x+timerWidth+2, y+2, width, 1, termbox.Cell{Ch: '═'})
-	termbox.SetCell(x+timerWidth+2+width, y+0, '╗', coldef, coldef)
-	termbox.SetCell(x+timerWidth+2+width, y+1, '║', coldef, coldef)
-	termbox.SetCell(x+timerWidth+2+width, y+2, '╝', coldef, coldef)
-	Text(x+timerWidth+2, y+1, text)
-
-	termbox.Flush()
-}
-
-func (sb StatusBar) UpdateTimer(seconds int) {
-	Text(sb.X+1, sb.Y+1, formatTimer(seconds))
-	termbox.Flush()
-}
-
-func (sb StatusBar) UpdateText(text string) {
-	//Text(sb.X+sb.timerWidth+2, sb.Y+1, text[0:sb.Width]) // panics for some reason
-	fill(sb.X+sb.timerWidth+2, sb.Y+1, sb.Width, 1, termbox.Cell{Ch: ' '})
-	Text(sb.X+sb.timerWidth+2, sb.Y+1, text)
-	termbox.Flush()
-}
-
-func fill(x, y, w, h int, cell termbox.Cell) {
-	for ly := 0; ly < h; ly++ {
-		for lx := 0; lx < w; lx++ {
-			termbox.SetCell(x+lx, y+ly, cell.Ch, cell.Fg, cell.Bg)
-		}
-	}
-}
-
-func tbprint(x, y int, fg, bg termbox.Attribute, msg string) {
-	for _, c := range msg {
-		termbox.SetCell(x, y, c, fg, bg)
-		x++
-	}
-}
-
-func Text(x, y int, s string) (maxX, maxY int) {
-	mx := 0
-	tempx := x
-	text := []string{s}
-	if strings.Contains(s, "\n") {
-		text = strings.Split(s, "\n")
-	}
-	for _, t := range text {
-		for _, r := range t {
-			termbox.SetCell(x, y, r, termbox.ColorDefault, termbox.ColorDefault)
-			x += 1
-		}
-		if x > mx {
-			mx = x
-		}
-		x = tempx
-		y += 1
-	}
-	// Because we always icrease it one more.
-	y -= 1
-	return mx, y
-}
-
-func DrawOptions(x, y int, c Config) (finalX, finalY int) {
-
-	_, y = Text(x, y, "───────────────")
-	_, y = Text(x, y+1, "Mode: "+strconv.QuoteRuneToASCII(c.Mode))
-	_, y = Text(x, y+1, "───────────────")
-	_, y = Text(x, y+1, "TotalTime: "+strconv.Itoa(c.TotalTime)+" min")
-	_, y = Text(x, y+1, "───────────────")
-	_, y = Text(x, y+1, "Offset: "+strconv.Itoa(c.Offset))
-	_, y = Text(x, y+1, "───────────────")
-	_, y = Text(x, y+1, fmt.Sprintf("Base: %.2f hz", c.BaseHz))
-	_, y = Text(x, y+1, "───────────────")
-	_, y = Text(x, y+1, fmt.Sprintf("Start: %.2f hz", c.StartHz))
-	_, y = Text(x, y+1, "───────────────")
-	_, y = Text(x, y+1, fmt.Sprintf("End: %.2f hz", c.EndHz))
-	_, y = Text(x, y+1, "───────────────")
-	return x, y
-}
-
-func DrawKeyLabel(x, y, w int, label string) {
-	const coldef = termbox.ColorDefault
-	keyWidth := 5
-
-	termbox.SetCell(x, y+1, '║', coldef, coldef)
-	termbox.SetCell(x, y+2, '╚', coldef, coldef)
-
-	fill(x+1, y+2, keyWidth, 1, termbox.Cell{Ch: '═'})
-	termbox.SetCell(x+keyWidth+1, y+0, '╤', coldef, coldef)
-	termbox.SetCell(x+keyWidth+1, y+1, '│', coldef, coldef)
-	termbox.SetCell(x+keyWidth+1, y+2, '╧', coldef, coldef)
-	fill(x+keyWidth+2, y+0, w, 1, termbox.Cell{Ch: '═'})
-	fill(x+keyWidth+2, y+2, w, 1, termbox.Cell{Ch: '═'})
-
-	termbox.SetCell(x+keyWidth+2+w, y+1, '║', coldef, coldef)
-	termbox.SetCell(x+keyWidth+2+w, y+2, '╝', coldef, coldef)
-	Text(x+keyWidth+2, y+1, label)
-}
-
-func DrawKeyLabels(x, y int) {
-	const coldef = termbox.ColorDefault
-	keyWidth := 5
-	w := maxLabelLength() + 6
-
-	termbox.SetCell(x, y+0, '╔', coldef, coldef)
-	fill(x+1, y+0, keyWidth, 1, termbox.Cell{Ch: '═'})
-	termbox.SetCell(x+keyWidth+2+w, y+0, '╗', coldef, coldef)
-	DrawKeyLabel(x, y+0, w, fmt.Sprintf("┊ %v = %v", strconv.QuoteRuneToASCII('q'), Labels['q']))
-	DrawKeyLabel(x, y+3, w, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('a'), Labels['a']))
-	DrawKeyLabel(x, y+6, w, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('w'), Labels['w']))
-	DrawKeyLabel(x, y+9, w, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('s'), Labels['s']))
-	DrawKeyLabel(x, y+12, w, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('e'), Labels['e']))
-	DrawKeyLabel(x, y+15, w, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('d'), Labels['d']))
-}
-
-// func DrawKeyLabels(x, y int) (finalX, finalY int) {
-// 	w := maxLabelLength() + 6
-// 	fill(x+0, y+0, w+1, 1, termbox.Cell{Ch: '╌'})
-// 	fill(x+0, y+0, 1, 12, termbox.Cell{Ch: '┊'})
-// 	Text(x+0, y+1, fmt.Sprintf("┊ %v = %v", strconv.QuoteRuneToASCII('q'), Labels['q']))
-// 	fill(x+0, y+2, w+1, 1, termbox.Cell{Ch: '╌'})
-// 	Text(x+1, y+3, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('a'), Labels['a']))
-// 	fill(x+0, y+4, w+1, 1, termbox.Cell{Ch: '╌'})
-// 	Text(x+1, y+5, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('w'), Labels['w']))
-// 	fill(x+0, y+6, w+1, 1, termbox.Cell{Ch: '╌'})
-// 	Text(x+1, y+7, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('s'), Labels['s']))
-// 	fill(x+0, y+8, w+1, 1, termbox.Cell{Ch: '╌'})
-// 	Text(x+1, y+9, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('e'), Labels['e']))
-// 	fill(x+0, y+10, w+1, 1, termbox.Cell{Ch: '╌'})
-// 	Text(x+1, y+11, fmt.Sprintf("%v = %v", strconv.QuoteRuneToASCII('d'), Labels['d']))
-// 	fill(x+0, y+12, w+1, 1, termbox.Cell{Ch: '╌'})
-// 	return x, y
-// }
-
-func maxLabelLength() int {
-	max := 0
-	for _, label := range Labels {
-		l := len(label)
-		if l > max {
-			max = l
-		}
-	}
-	return max
-}
-
-type Config struct {
-	Mode      rune
-	TotalTime int
-	Offset    int
-	BaseHz    float64
-	StartHz   float64
-	EndHz     float64
-}
-
-func (c Config) Save() error {
-	json, err := json.MarshalIndent(c, "", "  ")
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile("config.json", json, 0644)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *Config) Load() error {
-	b, err := ioutil.ReadFile("config.json")
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(b, c)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// CurrentHz = Seconds * (EndHz - StartHz) / ((TotalTime - Offset) * 60)
-func CurrentHz(seconds int, c Config) float64 {
-	return (float64(seconds) * (c.EndHz - c.StartHz) / float64((c.TotalTime-c.Offset)*60)) + c.StartHz
 }
