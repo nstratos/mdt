@@ -14,6 +14,10 @@ func CurrentHz(seconds int) float64 {
 	return (float64(seconds) * (config.EndHz - config.StartHz) / float64((config.TotalTime-config.Offset)*60)) + config.StartHz
 }
 
+func RecordedKeyText(key rune, seconds int) string {
+	return fmt.Sprintf("Recorded %v (%.2fhz) \"%v\"", strconv.QuoteRune(key), CurrentHz(seconds), Labels[key])
+}
+
 func text(x, y int, s string) (maxX, maxY int) {
 	mx := 0
 	tempx := x

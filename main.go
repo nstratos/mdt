@@ -62,14 +62,16 @@ func main() {
 	defer ui.Close()
 
 	letter := make(chan rune)
+	input := make(chan rune)
 	start := make(chan bool)
 	done := make(chan bool)
 	endTimer := make(chan bool)
 	defer close(letter)
+	defer close(input)
 	defer close(start)
 	defer close(done)
 	defer close(endTimer)
-	go captureEvents(letter, start, done)
+	go captureEvents(letter, input, start, done)
 	capturing := false
 	timerEnded := false
 loop:
@@ -96,6 +98,8 @@ loop:
 			if capturing {
 				letter <- l
 			}
+		case in := <-input:
+			ui.UpdateText(fmt.Sprintf("input = %v", rtoa(in)))
 		case <-done:
 			break loop
 		}
@@ -125,7 +129,7 @@ func timer(maxSeconds int, letter chan rune, end chan bool) {
 	}
 }
 
-func captureEvents(letter chan rune, start chan bool, done chan bool) {
+func captureEvents(letter, input chan rune, start, done chan bool) {
 	started := false
 	for {
 		ev := termbox.PollEvent()
@@ -135,18 +139,38 @@ func captureEvents(letter chan rune, start chan bool, done chan bool) {
 		case ev.Key == termbox.KeySpace:
 			started = !started
 			start <- started
+		case allowedInput(ev.Ch):
+			input <- ev.Ch
 		case supportedLabel(ev.Ch):
 			letter <- ev.Ch
 		case ev.Type == termbox.EventMouse:
 			cell := ui.GetCell(ev.MouseX, ev.MouseY)
-			ui.Text(2, 22, fmt.Sprintf("Mouse clicked (%d, %d) = %v", ev.MouseX, ev.MouseY, strconv.QuoteRuneToASCII(cell.Ch)))
+			ui.Text(2, 22, fmt.Sprintf("Mouse clicked (%d, %d) = %v -> %v", ev.MouseX, ev.MouseY, rtoa(cell.Ch), cell.Input))
+			if cell.Input != nil {
+				cell.Input.Selected(true)
+			} else {
+				ui.DeselectAllInputs()
+			}
 			//input := ui.GetInput(ev.MouseX, ev.MouseX+3, ev.MouseY)
 			//printText(2, 22, fmt.Sprintf("Mouse clicked (%d, %d) = %v", ev.MouseX, ev.MouseY, input))
-			termbox.Flush()
+			//termbox.Flush()
 			// case ev.Key == termbox.KeyEnter:
 			// 	ui.Input()
 		}
 	}
+}
+
+func rtoa(r rune) string {
+	return strconv.QuoteRuneToASCII(r)
+}
+
+func allowedInput(key rune) bool {
+	if key == '0' || key == '1' || key == '2' || key == '3' || key == '4' ||
+		key == '5' || key == '6' || key == '7' || key == '8' || key == '9' ||
+		key == '.' {
+		return true
+	}
+	return false
 }
 
 // 'a' = 97		-> visual imagination

@@ -1,11 +1,6 @@
 package ui
 
-import (
-	"fmt"
-	"strconv"
-
-	"github.com/nsf/termbox-go"
-)
+import "github.com/nsf/termbox-go"
 
 var Labels = map[rune]string{
 	'a': "Visual imagination",
@@ -23,7 +18,7 @@ const title = `           _ _
                  
 `
 
-var cells [][]Cell
+//var cells [][]Cell
 var inputs []*Input
 var keys []*KeyLabel
 var statusBar *StatusBar
@@ -104,7 +99,6 @@ func drawInputs(x, y int) (maxX, maxY int) {
 	for _, in := range inputs {
 		in.Draw()
 	}
-	in6.Selected()
 	return in6.MaxX(), in6.MaxY()
 }
 
@@ -129,7 +123,7 @@ type Cell struct {
 	termbox.Cell
 }
 
-func Cells() [][]Cell {
+func cells() [][]Cell {
 	mx, my := termbox.Size()
 	cellBuffer := termbox.CellBuffer()
 	cells := make([][]Cell, mx)
@@ -150,6 +144,20 @@ func Cells() [][]Cell {
 	return cells
 }
 
+func registerInputs(cells [][]Cell) [][]Cell {
+	for _, in := range inputs {
+		for x := in.TextStartX(); x <= in.TextEndX(); x++ {
+			cells[x][in.TextY()].Input = in
+		}
+	}
+	return cells
+}
+
+func Cells() [][]Cell {
+	c := cells()
+	return registerInputs(c)
+}
+
 func GetCell(x, y int) Cell {
 	c := Cells()
 	return c[x][y]
@@ -162,6 +170,183 @@ func GetInput(startX, endX, y int) string {
 		runes = append(runes, c[x][y].Ch)
 	}
 	return string(runes)
+}
+
+type Input struct {
+	X      int
+	Y      int
+	LabelW int
+	LabelT string
+	W      int
+	T      string
+	a      bool
+	S      bool
+}
+
+func NewInput(x, y, labelW int, labelT string, w int, t string, a bool) *Input {
+	return &Input{x, y, labelW, labelT, w, t, a, false}
+}
+
+func (in Input) TextStartX() int {
+	return in.X + in.LabelW + 3
+}
+
+func (in Input) TextEndX() int {
+	return in.TextStartX() + in.W
+}
+
+func (in Input) TextY() int {
+	return in.Y + 1
+}
+
+func (in Input) MaxX() int {
+	return in.X + in.LabelW + 3 + in.W
+}
+
+func (in Input) MaxY() int {
+	return in.Y + 2
+}
+
+func (in Input) ClearText() {
+	fill(in.TextStartX(), in.TextY(), in.W, 1, ' ')
+	//for x := in.TextStartX; i <= in.TextEndX; x++ {
+
+	//}
+}
+
+func (in Input) ResetText() {
+	text(in.TextStartX(), in.TextY(), in.T)
+}
+
+func (in Input) Draw() {
+	x := in.X
+	y := in.Y
+	lw := in.LabelW
+	lt := in.LabelT
+	w := in.W
+	t := in.T
+
+	fill(x, y+0, 1, 1, '┌')
+	fill(x, y+1, 1, 1, '│')
+	fill(x, y+2, 1, 1, '└')
+	fill(x+1, y+0, lw, 1, '─')
+	text(x+1, y+1, lt)
+	fill(x+1, y+2, lw, 1, '─')
+	fill(x+lw+1, y+0, 1, 1, '┐')
+	fill(x+lw+1, y+1, 1, 1, '│')
+	fill(x+lw+1, y+2, 1, 1, '┘')
+	fill(x+lw+2, y+0, 1, 1, ' ')
+	fill(x+lw+2, y+1, 1, 1, ' ')
+	fill(x+lw+2, y+2, 1, 1, ' ')
+	fill(x+lw+3, y+0, w, 1, ' ')
+	text(x+lw+3, y+1, t)
+	fill(x+lw+3, y+2, w, 1, ' ')
+	fill(x+lw+3+w, y+0, 1, 1, ' ')
+	fill(x+lw+3+w, y+1, 1, 1, ' ')
+	fill(x+lw+3+w, y+2, 1, 1, ' ')
+	if in.a {
+		fill(x, y+0, 1, 1, '├')
+		fill(x+lw+1, y+0, 1, 1, '┤')
+	}
+}
+
+func (in Input) Selected(selected bool) {
+	x := in.X
+	y := in.Y
+	lw := in.LabelW
+	w := in.W
+
+	fill(x+lw+2, y+0, 1, 1, ' ')
+	fill(x+lw+2, y+1, 1, 1, ' ')
+	fill(x+lw+2, y+2, 1, 1, ' ')
+	fill(x+lw+3, y+0, w, 1, ' ')
+	fill(x+lw+3, y+2, w, 1, ' ')
+	fill(x+lw+3+w, y+0, 1, 1, ' ')
+	fill(x+lw+3+w, y+1, 1, 1, ' ')
+	fill(x+lw+3+w, y+2, 1, 1, ' ')
+	if selected {
+		DeselectAllInputs()
+		fill(x+lw+2, y+0, 1, 1, '┌')
+		fill(x+lw+2, y+1, 1, 1, '│')
+		fill(x+lw+2, y+2, 1, 1, '└')
+		fill(x+lw+3, y+0, w, 1, '─')
+		fill(x+lw+3, y+2, w, 1, '─')
+		fill(x+lw+3+w, y+0, 1, 1, '┐')
+		fill(x+lw+3+w, y+1, 1, 1, '│')
+		fill(x+lw+3+w, y+2, 1, 1, '┘')
+		in.ClearText()
+		termbox.SetCursor(in.TextStartX(), in.TextY())
+	}
+
+	termbox.Flush()
+}
+
+func DeselectAllInputs() {
+	termbox.HideCursor()
+	for _, in := range inputs {
+		in.Selected(false)
+		in.ResetText()
+	}
+}
+
+type KeyLabel struct {
+	X      int
+	Y      int
+	LabelW int
+	LabelT string
+	W      int
+	T      string
+	a      bool
+	S      bool
+}
+
+func NewKeyLabel(x, y, labelW int, labelT string, w int, t string, a bool) *KeyLabel {
+	return &KeyLabel{x, y, labelW, labelT, w, t, a, false}
+}
+
+func (kl KeyLabel) Start() int {
+	return kl.X + kl.LabelW + 3
+}
+
+func (kl KeyLabel) End() int {
+	return kl.Start() + kl.W
+}
+func (kl KeyLabel) MaxX() int {
+	return kl.X + kl.LabelW + 3 + kl.W
+}
+
+func (kl KeyLabel) MaxY() int {
+	return kl.Y + 2
+}
+
+func (kl KeyLabel) Draw() {
+	const coldef = termbox.ColorDefault
+	x := kl.X
+	y := kl.Y
+	lw := kl.LabelW
+	lt := kl.LabelT
+	w := kl.W
+	t := kl.T
+
+	fill(x, y+0, 1, 1, '┌')
+	fill(x, y+1, 1, 1, '│')
+	fill(x, y+2, 1, 1, '└')
+	fill(x+1, y+0, lw, 1, '─')
+	text(x+1, y+1, lt)
+	fill(x+1, y+2, lw, 1, '─')
+	fill(x+lw+1, y+0, 1, 1, '─')
+	fill(x+lw+1, y+1, 1, 1, ' ')
+	fill(x+lw+1, y+2, 1, 1, '─')
+	fill(x+lw+2, y+0, w, 1, '─')
+	text(x+lw+2, y+1, t)
+	fill(x+lw+2, y+2, w, 1, '─')
+	fill(x+lw+2+w, y+0, 1, 1, '┐')
+	fill(x+lw+2+w, y+1, 1, 1, '│')
+	fill(x+lw+2+w, y+2, 1, 1, '┘')
+	if kl.a {
+		fill(x, y+0, 1, 1, '├')
+		fill(x+lw+2+w, y+0, 1, 1, '┤')
+	}
 }
 
 type StatusBar struct {
@@ -232,149 +417,6 @@ func UpdateTimer(seconds int) {
 func UpdateText(text string) {
 	if statusBar != nil {
 		statusBar.UpdateText(text)
-	}
-}
-
-func RecordedKeyText(key rune, seconds int) string {
-	return fmt.Sprintf("Recorded %v (%.2fhz) \"%v\"", strconv.QuoteRune(key), CurrentHz(seconds), Labels[key])
-}
-
-type Input struct {
-	X      int
-	Y      int
-	LabelW int
-	LabelT string
-	W      int
-	T      string
-	a      bool
-	S      bool
-}
-
-func NewInput(x, y, labelW int, labelT string, w int, t string, a bool) *Input {
-	return &Input{x, y, labelW, labelT, w, t, a, false}
-}
-
-func (in Input) Start() int {
-	return in.X + in.LabelW + 3
-}
-
-func (in Input) End() int {
-	return in.Start() + in.W
-}
-func (in Input) MaxX() int {
-	return in.X + in.LabelW + 3 + in.W
-}
-
-func (in Input) MaxY() int {
-	return in.Y + 2
-}
-
-func (in Input) Draw() {
-	x := in.X
-	y := in.Y
-	lw := in.LabelW
-	lt := in.LabelT
-	w := in.W
-	t := in.T
-
-	fill(x, y+0, 1, 1, '┌')
-	fill(x, y+1, 1, 1, '│')
-	fill(x, y+2, 1, 1, '└')
-	fill(x+1, y+0, lw, 1, '─')
-	text(x+1, y+1, lt)
-	fill(x+1, y+2, lw, 1, '─')
-	fill(x+lw+1, y+0, 1, 1, '┐')
-	fill(x+lw+1, y+1, 1, 1, '│')
-	fill(x+lw+1, y+2, 1, 1, '┘')
-	fill(x+lw+2, y+0, 1, 1, ' ')
-	fill(x+lw+2, y+1, 1, 1, ' ')
-	fill(x+lw+2, y+2, 1, 1, ' ')
-	fill(x+lw+3, y+0, w, 1, ' ')
-	text(x+lw+3, y+1, t)
-	fill(x+lw+3, y+2, w, 1, ' ')
-	fill(x+lw+3+w, y+0, 1, 1, ' ')
-	fill(x+lw+3+w, y+1, 1, 1, ' ')
-	fill(x+lw+3+w, y+2, 1, 1, ' ')
-	if in.a {
-		fill(x, y+0, 1, 1, '├')
-		fill(x+lw+1, y+0, 1, 1, '┤')
-	}
-}
-
-func (in Input) Selected() {
-	x := in.X
-	y := in.Y
-	lw := in.LabelW
-	w := in.W
-
-	Fill(x+lw+2, y+0, 1, 1, '┌')
-	Fill(x+lw+2, y+1, 1, 1, '│')
-	Fill(x+lw+2, y+2, 1, 1, '└')
-	Fill(x+lw+3, y+0, w, 1, '─')
-	Fill(x+lw+3, y+2, w, 1, '─')
-	Fill(x+lw+3+w, y+0, 1, 1, '┐')
-	Fill(x+lw+3+w, y+1, 1, 1, '│')
-	Fill(x+lw+3+w, y+2, 1, 1, '┘')
-	termbox.Flush()
-}
-
-type KeyLabel struct {
-	X      int
-	Y      int
-	LabelW int
-	LabelT string
-	W      int
-	T      string
-	a      bool
-	S      bool
-}
-
-func NewKeyLabel(x, y, labelW int, labelT string, w int, t string, a bool) *KeyLabel {
-	return &KeyLabel{x, y, labelW, labelT, w, t, a, false}
-}
-
-func (kl KeyLabel) Start() int {
-	return kl.X + kl.LabelW + 3
-}
-
-func (kl KeyLabel) End() int {
-	return kl.Start() + kl.W
-}
-func (kl KeyLabel) MaxX() int {
-	return kl.X + kl.LabelW + 3 + kl.W
-}
-
-func (kl KeyLabel) MaxY() int {
-	return kl.Y + 2
-}
-
-func (kl KeyLabel) Draw() {
-	const coldef = termbox.ColorDefault
-	x := kl.X
-	y := kl.Y
-	lw := kl.LabelW
-	lt := kl.LabelT
-	w := kl.W
-	t := kl.T
-
-	fill(x, y+0, 1, 1, '┌')
-	fill(x, y+1, 1, 1, '│')
-	fill(x, y+2, 1, 1, '└')
-	fill(x+1, y+0, lw, 1, '─')
-	text(x+1, y+1, lt)
-	fill(x+1, y+2, lw, 1, '─')
-	fill(x+lw+1, y+0, 1, 1, '─')
-	fill(x+lw+1, y+1, 1, 1, ' ')
-	fill(x+lw+1, y+2, 1, 1, '─')
-	fill(x+lw+2, y+0, w, 1, '─')
-	text(x+lw+2, y+1, t)
-	fill(x+lw+2, y+2, w, 1, '─')
-	fill(x+lw+2+w, y+0, 1, 1, '┐')
-	fill(x+lw+2+w, y+1, 1, 1, '│')
-	fill(x+lw+2+w, y+2, 1, 1, '┘')
-	if kl.a {
-		fill(x, y+0, 1, 1, '├')
-		fill(x+lw+2+w, y+0, 1, 1, '┤')
 	}
 }
 
