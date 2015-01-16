@@ -163,130 +163,14 @@ func GetCell(x, y int) Cell {
 	return c[x][y]
 }
 
-func GetInput(startX, endX, y int) string {
+// Scans the cells of a line and returns it's contents as a string.
+func Scan(startX, endX, y int) string {
 	c := Cells()
 	runes := make([]rune, 0)
 	for x := startX; x <= endX; x++ {
 		runes = append(runes, c[x][y].Ch)
 	}
 	return string(runes)
-}
-
-type Input struct {
-	X      int
-	Y      int
-	LabelW int
-	LabelT string
-	W      int
-	T      string
-	a      bool
-	S      bool
-}
-
-func NewInput(x, y, labelW int, labelT string, w int, t string, a bool) *Input {
-	return &Input{x, y, labelW, labelT, w, t, a, false}
-}
-
-func (in Input) TextStartX() int {
-	return in.X + in.LabelW + 3
-}
-
-func (in Input) TextEndX() int {
-	return in.TextStartX() + in.W
-}
-
-func (in Input) TextY() int {
-	return in.Y + 1
-}
-
-func (in Input) MaxX() int {
-	return in.X + in.LabelW + 3 + in.W
-}
-
-func (in Input) MaxY() int {
-	return in.Y + 2
-}
-
-func (in Input) ClearText() {
-	fill(in.TextStartX(), in.TextY(), in.W, 1, ' ')
-	//for x := in.TextStartX; i <= in.TextEndX; x++ {
-
-	//}
-}
-
-func (in Input) ResetText() {
-	text(in.TextStartX(), in.TextY(), in.T)
-}
-
-func (in Input) Draw() {
-	x := in.X
-	y := in.Y
-	lw := in.LabelW
-	lt := in.LabelT
-	w := in.W
-	t := in.T
-
-	fill(x, y+0, 1, 1, '┌')
-	fill(x, y+1, 1, 1, '│')
-	fill(x, y+2, 1, 1, '└')
-	fill(x+1, y+0, lw, 1, '─')
-	text(x+1, y+1, lt)
-	fill(x+1, y+2, lw, 1, '─')
-	fill(x+lw+1, y+0, 1, 1, '┐')
-	fill(x+lw+1, y+1, 1, 1, '│')
-	fill(x+lw+1, y+2, 1, 1, '┘')
-	fill(x+lw+2, y+0, 1, 1, ' ')
-	fill(x+lw+2, y+1, 1, 1, ' ')
-	fill(x+lw+2, y+2, 1, 1, ' ')
-	fill(x+lw+3, y+0, w, 1, ' ')
-	text(x+lw+3, y+1, t)
-	fill(x+lw+3, y+2, w, 1, ' ')
-	fill(x+lw+3+w, y+0, 1, 1, ' ')
-	fill(x+lw+3+w, y+1, 1, 1, ' ')
-	fill(x+lw+3+w, y+2, 1, 1, ' ')
-	if in.a {
-		fill(x, y+0, 1, 1, '├')
-		fill(x+lw+1, y+0, 1, 1, '┤')
-	}
-}
-
-func (in Input) Selected(selected bool) {
-	x := in.X
-	y := in.Y
-	lw := in.LabelW
-	w := in.W
-
-	fill(x+lw+2, y+0, 1, 1, ' ')
-	fill(x+lw+2, y+1, 1, 1, ' ')
-	fill(x+lw+2, y+2, 1, 1, ' ')
-	fill(x+lw+3, y+0, w, 1, ' ')
-	fill(x+lw+3, y+2, w, 1, ' ')
-	fill(x+lw+3+w, y+0, 1, 1, ' ')
-	fill(x+lw+3+w, y+1, 1, 1, ' ')
-	fill(x+lw+3+w, y+2, 1, 1, ' ')
-	if selected {
-		DeselectAllInputs()
-		fill(x+lw+2, y+0, 1, 1, '┌')
-		fill(x+lw+2, y+1, 1, 1, '│')
-		fill(x+lw+2, y+2, 1, 1, '└')
-		fill(x+lw+3, y+0, w, 1, '─')
-		fill(x+lw+3, y+2, w, 1, '─')
-		fill(x+lw+3+w, y+0, 1, 1, '┐')
-		fill(x+lw+3+w, y+1, 1, 1, '│')
-		fill(x+lw+3+w, y+2, 1, 1, '┘')
-		in.ClearText()
-		termbox.SetCursor(in.TextStartX(), in.TextY())
-	}
-
-	termbox.Flush()
-}
-
-func DeselectAllInputs() {
-	termbox.HideCursor()
-	for _, in := range inputs {
-		in.Selected(false)
-		in.ResetText()
-	}
 }
 
 type KeyLabel struct {
@@ -320,7 +204,6 @@ func (kl KeyLabel) MaxY() int {
 }
 
 func (kl KeyLabel) Draw() {
-	const coldef = termbox.ColorDefault
 	x := kl.X
 	y := kl.Y
 	lw := kl.LabelW
@@ -370,28 +253,27 @@ func (sb StatusBar) MaxY() int {
 }
 
 func (sb StatusBar) Draw() {
-	const coldef = termbox.ColorDefault
 	x := sb.X
 	y := sb.Y
-	width := sb.Width
+	w := sb.Width
 	t := sb.Text
-	timerWidth := sb.timerWidth
+	tw := sb.timerWidth
 
 	// unicode box drawing chars around the edit box
-	termbox.SetCell(x, y+0, '╔', coldef, coldef)
-	termbox.SetCell(x, y+1, '║', coldef, coldef)
-	termbox.SetCell(x, y+2, '╚', coldef, coldef)
-	fill(x+1, y+0, timerWidth, 1, '═')
-	fill(x+1, y+2, timerWidth, 1, '═')
-	termbox.SetCell(x+timerWidth+1, y+0, '╤', coldef, coldef)
-	termbox.SetCell(x+timerWidth+1, y+1, '│', coldef, coldef)
-	termbox.SetCell(x+timerWidth+1, y+2, '╧', coldef, coldef)
-	fill(x+timerWidth+2, y+0, width, 1, '═')
-	fill(x+timerWidth+2, y+2, width, 1, '═')
-	termbox.SetCell(x+timerWidth+2+width, y+0, '╗', coldef, coldef)
-	termbox.SetCell(x+timerWidth+2+width, y+1, '║', coldef, coldef)
-	termbox.SetCell(x+timerWidth+2+width, y+2, '╝', coldef, coldef)
-	text(x+timerWidth+2, y+1, t)
+	fill(x, y+0, 1, 1, '╔')
+	fill(x, y+1, 1, 1, '║')
+	fill(x, y+2, 1, 1, '╚')
+	fill(x+1, y+0, tw, 1, '═')
+	fill(x+1, y+2, tw, 1, '═')
+	fill(x+tw+1, y+0, 1, 1, '╤')
+	fill(x+tw+1, y+1, 1, 1, '│')
+	fill(x+tw+1, y+2, 1, 1, '╧')
+	fill(x+tw+2, y+0, w, 1, '═')
+	fill(x+tw+2, y+2, w, 1, '═')
+	fill(x+tw+2+w, y+0, 1, 1, '╗')
+	fill(x+tw+2+w, y+1, 1, 1, '║')
+	fill(x+tw+2+w, y+2, 1, 1, '╝')
+	text(x+tw+2, y+1, t)
 
 	termbox.Flush()
 }
@@ -402,7 +284,7 @@ func (sb StatusBar) UpdateTimer(seconds int) {
 }
 
 func (sb StatusBar) UpdateText(t string) {
-	//Text(sb.X+sb.timerWidth+2, sb.Y+1, text[0:sb.Width]) // panics for some reason
+	//Text(sb.X+sb.timerWidth+2, sb.Y+1, text[0:sb.Width]) // text[0:sb.Width] panics for some reason
 	fill(sb.X+sb.timerWidth+2, sb.Y+1, sb.Width, 1, ' ')
 	text(sb.X+sb.timerWidth+2, sb.Y+1, t)
 	termbox.Flush()

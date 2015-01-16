@@ -83,3 +83,17 @@ func formatTimer(seconds int) string {
 func rtoa(r rune) string {
 	return strconv.QuoteRuneToASCII(r)
 }
+
+func Debug(s string) {
+	x, y := termbox.Size()
+	fill(2, y-2, x-1, 1, ' ')
+	Text(2, y-2, s)
+}
+
+func flush() {
+	termbox.Flush()
+}
+
+func setCursor(x, y int) {
+	termbox.SetCursor(x, y)
+}

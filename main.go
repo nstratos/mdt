@@ -62,7 +62,7 @@ func main() {
 	defer ui.Close()
 
 	letter := make(chan rune)
-	input := make(chan rune)
+	input := make(chan *ui.Entry)
 	start := make(chan bool)
 	done := make(chan bool)
 	endTimer := make(chan bool)
@@ -78,6 +78,7 @@ loop:
 	for {
 		select {
 		case <-start:
+			ui.DeselectAllInputs()
 			capturing = !capturing
 			if capturing {
 				go timer(5, letter, endTimer)
@@ -99,9 +100,14 @@ loop:
 				letter <- l
 			}
 		case in := <-input:
-			ui.UpdateText(fmt.Sprintf("input = %v", rtoa(in)))
+			if si := ui.SelectedInput(); si != nil {
+				si.SetBuf(in)
+			}
 		case <-done:
-			break loop
+			if ui.SelectedInput() == nil {
+				break loop
+			}
+			ui.DeselectAllInputs()
 		}
 	}
 }
@@ -129,7 +135,7 @@ func timer(maxSeconds int, letter chan rune, end chan bool) {
 	}
 }
 
-func captureEvents(letter, input chan rune, start, done chan bool) {
+func captureEvents(letter chan rune, input chan *ui.Entry, start, done chan bool) {
 	started := false
 	for {
 		ev := termbox.PollEvent()
@@ -139,19 +145,21 @@ func captureEvents(letter, input chan rune, start, done chan bool) {
 		case ev.Key == termbox.KeySpace:
 			started = !started
 			start <- started
-		case allowedInput(ev.Ch):
-			input <- ev.Ch
+		case ui.AllowedEntry(ev):
+			input <- ui.NewEntry(ev)
+		//case allowedInput(ev.Ch):
+		//	input <- ev.Ch
 		case supportedLabel(ev.Ch):
 			letter <- ev.Ch
 		case ev.Type == termbox.EventMouse:
 			cell := ui.GetCell(ev.MouseX, ev.MouseY)
-			ui.Text(2, 22, fmt.Sprintf("Mouse clicked (%d, %d) = %v -> %v", ev.MouseX, ev.MouseY, rtoa(cell.Ch), cell.Input))
+			ui.Debug(fmt.Sprintf("Mouse clicked (%d, %d) = %v -> %v", ev.MouseX, ev.MouseY, rtoa(cell.Ch), cell.Input))
 			if cell.Input != nil {
-				cell.Input.Selected(true)
+				cell.Input.SetSelected(true)
 			} else {
 				ui.DeselectAllInputs()
 			}
-			//input := ui.GetInput(ev.MouseX, ev.MouseX+3, ev.MouseY)
+			//input := ui.Scan(ev.MouseX, ev.MouseX+3, ev.MouseY)
 			//printText(2, 22, fmt.Sprintf("Mouse clicked (%d, %d) = %v", ev.MouseX, ev.MouseY, input))
 			//termbox.Flush()
 			// case ev.Key == termbox.KeyEnter:
@@ -162,15 +170,6 @@ func captureEvents(letter, input chan rune, start, done chan bool) {
 
 func rtoa(r rune) string {
 	return strconv.QuoteRuneToASCII(r)
-}
-
-func allowedInput(key rune) bool {
-	if key == '0' || key == '1' || key == '2' || key == '3' || key == '4' ||
-		key == '5' || key == '6' || key == '7' || key == '8' || key == '9' ||
-		key == '.' {
-		return true
-	}
-	return false
 }
 
 // 'a' = 97		-> visual imagination
