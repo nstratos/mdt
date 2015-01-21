@@ -9,6 +9,14 @@ import (
 
 const bufSize = 5
 
+type InputType uint8
+
+const (
+	InputNumericInt InputType = iota
+	InputNumericFloat
+	InputSwitch
+)
+
 type Input struct {
 	X      int
 	Y      int
@@ -20,6 +28,8 @@ type Input struct {
 	s      bool   // selected
 	//buf    *buf
 	*b
+	Type  InputType
+	Field ConfigField
 }
 
 type b struct {
@@ -56,6 +66,54 @@ func (in *Input) SetBuf(e *Entry) {
 	flush()
 }
 
+func (in *Input) Switch() error {
+	c := GetConfig()
+	if c.Mode == 'A' {
+		c.Mode = 'B'
+	} else {
+		c.Mode = 'A'
+	}
+	if err := c.Save(); err != nil {
+		return err
+	}
+	UpdateConfig(c)
+	UpdateConfig(c)
+	ReloadInputs(c)
+	return nil
+}
+
+func (in *Input) ValueMap() (map[string]interface{}, error) {
+	m := make(map[string]interface{})
+	var val interface{}
+	var err error
+	if in.Type == InputNumericInt {
+		if val, err = strconv.Atoi(string(in.buf)); err != nil {
+			return nil, err
+		}
+	}
+	if in.Type == InputNumericFloat {
+		if val, err = strconv.ParseFloat(string(in.buf), 64); err != nil {
+			return nil, err
+		}
+	}
+	m[in.Field.Val()] = val
+	return m, nil
+}
+
+func (in *Input) Valid() error {
+	if in.Type == InputNumericInt {
+		if _, err := strconv.Atoi(string(in.buf)); err != nil {
+			return err
+		}
+	}
+	if in.Type == InputNumericFloat {
+		if _, err := strconv.ParseFloat(string(in.buf), 64); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (in *Input) bufParseFloat() (float64, error) {
 	return strconv.ParseFloat(string(in.buf), 64)
 }
@@ -86,8 +144,8 @@ func (in Input) bufShow() {
 	in.SetText(string(in.buf))
 }
 
-func NewInput(x, y, labelW int, labelT string, w int, t string, a bool) *Input {
-	in := &Input{x, y, labelW, labelT, w, t, a, false, nil}
+func NewInput(x, y, labelW int, labelT string, w int, t string, a bool, it InputType, cf ConfigField) *Input {
+	in := &Input{x, y, labelW, labelT, w, t, a, false, nil, it, cf}
 	in.b = in.newBuf()
 	return in
 }
@@ -123,6 +181,7 @@ func (in Input) SetText(s string) {
 
 func (in Input) ResetText() {
 	text(in.TextStartX(), in.TextY(), in.T)
+	flush()
 }
 
 func (in Input) Draw() {
@@ -179,7 +238,9 @@ func (in *Input) SetSelected(selected bool) {
 		fill(x+lw+3+w, y+1, 1, 1, '│')
 		fill(x+lw+3+w, y+2, 1, 1, '┘')
 		in.ClearText()
-		termbox.SetCursor(in.TextStartX(), in.TextY())
+		in.bufShow()
+		setCursor(in.cur.x, in.cur.y)
+		//termbox.SetCursor(in.TextStartX(), in.TextY())
 	} else {
 		in.s = false
 		fill(x+lw+2, y+0, 1, 1, ' ')
@@ -191,6 +252,7 @@ func (in *Input) SetSelected(selected bool) {
 		fill(x+lw+3+w, y+1, 1, 1, ' ')
 		fill(x+lw+3+w, y+2, 1, 1, ' ')
 		in.ResetText()
+		in.ClearBuf()
 		termbox.HideCursor()
 	}
 
@@ -219,6 +281,7 @@ type Entry struct {
 	Ch        rune
 	Backspace bool
 	Delete    bool
+	Enter     bool
 }
 
 func (e Entry) String() string {
@@ -228,11 +291,17 @@ func (e Entry) String() string {
 	if e.Delete {
 		return fmt.Sprintf("Entry = 'Delete'")
 	}
+	if e.Enter {
+		return fmt.Sprintf("Entry = 'Enter'")
+	}
 	return fmt.Sprintf("Entry = %v", rtoa(e.Ch))
 
 }
 
 func NewEntry(te termbox.Event) *Entry {
+	if te.Key == termbox.KeyEnter {
+		return &Entry{Enter: true}
+	}
 	if te.Key == termbox.KeyDelete {
 		return &Entry{Delete: true}
 	}
@@ -246,7 +315,7 @@ func NewEntry(te termbox.Event) *Entry {
 }
 
 func AllowedEntry(te termbox.Event) bool {
-	if te.Key == termbox.KeyDelete || te.Key == termbox.KeyBackspace2 {
+	if te.Key == termbox.KeyDelete || te.Key == termbox.KeyBackspace2 || te.Key == termbox.KeyEnter {
 		return true
 	}
 	key := te.Ch

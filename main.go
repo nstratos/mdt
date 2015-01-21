@@ -36,7 +36,7 @@ func logCaptures() error {
 	}
 	for _, capt := range captures {
 		_, err = f.WriteString(
-			fmt.Sprintf("%.2fhz @ %.0f base hz, on %v %v\r\n",
+			fmt.Sprintf("%.2fhz @ %.2f base hz, on %v %v\r\n",
 				capt.Hz, c.BaseHz, capt.Timestamp(), capt.Label()))
 		if err != nil {
 			return err
@@ -81,7 +81,8 @@ loop:
 			ui.DeselectAllInputs()
 			capturing = !capturing
 			if capturing {
-				go timer(5, letter, endTimer)
+				c := ui.GetConfig()
+				go timer(c.TotalTime*60, letter, endTimer)
 				timerEnded = false
 			}
 			if !capturing && !timerEnded {
@@ -101,7 +102,35 @@ loop:
 			}
 		case in := <-input:
 			if si := ui.SelectedInput(); si != nil {
-				si.SetBuf(in)
+				if in.Enter {
+					if err := si.Valid(); err != nil {
+						ui.UpdateText(fmt.Sprintf("%v", err))
+						ui.Debug(fmt.Sprintf("1. %v", err))
+						continue
+					}
+					m, err := si.ValueMap()
+					if err != nil {
+						ui.UpdateText(fmt.Sprintf("%v", err))
+						ui.Debug(fmt.Sprintf("1,5. %v", err))
+						continue
+					}
+					c := ui.GetConfig()
+					if err := c.Update(m); err != nil {
+						ui.UpdateText(fmt.Sprintf("%v", err))
+						ui.Debug(fmt.Sprintf("2. %v", err))
+						continue
+					}
+					if err := c.Save(); err != nil {
+						ui.UpdateText(fmt.Sprintf("%v", err))
+						ui.Debug(fmt.Sprintf("3. %v", err))
+						continue
+					}
+					ui.UpdateConfig(c)
+					ui.ReloadInputs(c)
+					ui.DeselectAllInputs()
+				} else {
+					si.SetBuf(in)
+				}
 			}
 		case <-done:
 			if ui.SelectedInput() == nil {
@@ -117,6 +146,7 @@ func timer(maxSeconds int, letter chan rune, end chan bool) {
 	expired := time.NewTimer(time.Second * time.Duration(maxSeconds)).C
 	tick := time.NewTicker(time.Second).C
 	ui.UpdateTimer(seconds)
+	ui.UpdateText("New Session started")
 	for {
 		select {
 		case l := <-letter:
@@ -155,7 +185,16 @@ func captureEvents(letter chan rune, input chan *ui.Entry, start, done chan bool
 			cell := ui.GetCell(ev.MouseX, ev.MouseY)
 			ui.Debug(fmt.Sprintf("Mouse clicked (%d, %d) = %v -> %v", ev.MouseX, ev.MouseY, rtoa(cell.Ch), cell.Input))
 			if cell.Input != nil {
-				cell.Input.SetSelected(true)
+				if cell.Input.Type == ui.InputSwitch {
+					ui.DeselectAllInputs()
+					if err := cell.Input.Switch(); err != nil {
+						ui.UpdateText(fmt.Sprintf("%v", err))
+						ui.Debug(fmt.Sprintf("switch. %v", err))
+						continue
+					}
+				} else {
+					cell.Input.SetSelected(true)
+				}
 			} else {
 				ui.DeselectAllInputs()
 			}

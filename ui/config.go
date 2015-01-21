@@ -7,6 +7,21 @@ import (
 	"strconv"
 )
 
+type ConfigField string
+
+func (cf ConfigField) Val() string {
+	return string(cf)
+}
+
+const (
+	ConfigMode      ConfigField = "Mode"
+	ConfigTotalTime ConfigField = "TotalTime"
+	ConfigOffset    ConfigField = "Offset"
+	ConfigBaseHz    ConfigField = "BaseHz"
+	ConfigStartHz   ConfigField = "StartHz"
+	ConfigEndHz     ConfigField = "EndHz"
+)
+
 type Config struct {
 	Mode      rune
 	TotalTime int
@@ -17,6 +32,10 @@ type Config struct {
 }
 
 func (c Config) Save() error {
+	return writeConfig(c)
+}
+
+func writeConfig(c Config) error {
 	json, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
 		return err
@@ -31,17 +50,42 @@ func (c Config) Save() error {
 func (c *Config) Load() error {
 	b, err := ioutil.ReadFile("config.json")
 	if err != nil {
-		return err
+		c := Config{'A', 30, 5, 100, 15.00, 8.00}
+		if err := writeConfig(c); err != nil {
+			return err
+		}
+		b, err = ioutil.ReadFile("config.json")
+		if err != nil {
+			return err
+		}
 	}
+	//s, _ := strconv.Unquote(string(b))
+	//err = json.Unmarshal([]byte(s), c)
 	err = json.Unmarshal(b, c)
 	if err != nil {
+		return fmt.Errorf("loading config error: %v", err)
+	}
+	return nil
+}
+
+func (c *Config) Update(m map[string]interface{}) error {
+	tmp, err := json.Marshal(m)
+	if err != nil {
 		return err
+	}
+	err = json.Unmarshal(tmp, c)
+	if err != nil {
+		return fmt.Errorf("Unmarshal: %v\n", err)
 	}
 	return nil
 }
 
 func GetConfig() Config {
 	return config
+}
+
+func UpdateConfig(c Config) {
+	config = c
 }
 
 func (c Config) ModeS() string {

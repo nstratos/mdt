@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -9,13 +10,18 @@ import (
 )
 
 // Given the seconds passed, it returns the current Gz based on the formula:
-// CurrentHz = Seconds * (EndHz - StartHz) / ((TotalTime - Offset) * 60)
+// CurrentHz = Seconds * Abs((EndHz - StartHz)) / ((TotalTime - Offset) * 60) + StartHz
+// for Offset < TotalTime
 func CurrentHz(seconds int) float64 {
-	return (float64(seconds) * (config.EndHz - config.StartHz) / float64((config.TotalTime-config.Offset)*60)) + config.StartHz
+	offset := config.Offset
+	if offset >= config.TotalTime {
+		offset = 0
+	}
+	return (float64(seconds) * (math.Abs(config.EndHz - config.StartHz)) / float64((config.TotalTime-offset)*60)) + config.StartHz
 }
 
 func RecordedKeyText(key rune, seconds int) string {
-	return fmt.Sprintf("Recorded %v (%.2fhz) \"%v\"", strconv.QuoteRune(key), CurrentHz(seconds), Labels[key])
+	return fmt.Sprintf("Recorded %v (%.2fhz) on %v \"%v\"", strconv.QuoteRune(key), CurrentHz(seconds), formatTimer(seconds), Labels[key])
 }
 
 func text(x, y int, s string) (maxX, maxY int) {

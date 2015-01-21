@@ -28,7 +28,7 @@ const inputLabelWidth = 10
 const inputWidth = 9
 const keyLabelWidth = 3
 const keyWidth = 21
-const statusBarWidth = 54
+const statusBarWidth = 55
 
 // Must be called before any other function.
 func Init() error {
@@ -88,18 +88,31 @@ func drawStatusBar(x, y int) (maxX, maxY int) {
 func drawInputs(x, y int) (maxX, maxY int) {
 	const lw = inputLabelWidth
 	const w = inputWidth
-	in1 := NewInput(x, y+0, lw, "Mode", w, config.ModeS(), false)
-	in2 := NewInput(x, y+2, lw, "TotalTime", w, config.TotalTimeS(), true)
-	in3 := NewInput(x, y+4, lw, "Offset", w, config.OffsetS(), true)
-	in4 := NewInput(x, y+6, lw, "BaseHz", w, config.BaseHzS(), true)
-	in5 := NewInput(x, y+8, lw, "StartHz", w, config.StartHzS(), true)
-	in6 := NewInput(x, y+10, lw, "EndHz", w, config.EndHzS(), true)
+	in1 := NewInput(x, y+0, lw, "Mode", w, config.ModeS(), false, InputSwitch, ConfigMode)
+	in2 := NewInput(x, y+2, lw, "TotalTime", w, config.TotalTimeS(), true, InputNumericInt, ConfigTotalTime)
+	in3 := NewInput(x, y+4, lw, "Offset", w, config.OffsetS(), true, InputNumericInt, ConfigOffset)
+	in4 := NewInput(x, y+6, lw, "BaseHz", w, config.BaseHzS(), true, InputNumericFloat, ConfigBaseHz)
+	in5 := NewInput(x, y+8, lw, "StartHz", w, config.StartHzS(), true, InputNumericFloat, ConfigStartHz)
+	in6 := NewInput(x, y+10, lw, "EndHz", w, config.EndHzS(), true, InputNumericFloat, ConfigEndHz)
 	inputs = nil
 	inputs = append(inputs, in1, in2, in3, in4, in5, in6)
 	for _, in := range inputs {
 		in.Draw()
 	}
 	return in6.MaxX(), in6.MaxY()
+}
+
+func ReloadInputs(c Config) {
+	inputs[0].T = c.ModeS()
+	inputs[1].T = c.TotalTimeS()
+	inputs[2].T = c.OffsetS()
+	inputs[3].T = c.BaseHzS()
+	inputs[4].T = c.StartHzS()
+	inputs[5].T = c.EndHzS()
+	for _, in := range inputs {
+		in.ClearBuf()
+		in.ResetText()
+	}
 }
 
 func drawKeys(x, y int) (maxX, maxY int) {
@@ -147,7 +160,9 @@ func cells() [][]Cell {
 func registerInputs(cells [][]Cell) [][]Cell {
 	for _, in := range inputs {
 		for x := in.TextStartX(); x <= in.TextEndX(); x++ {
-			cells[x][in.TextY()].Input = in
+			cells[x][in.TextY()-1].Input = in
+			cells[x][in.TextY()+0].Input = in
+			cells[x][in.TextY()+1].Input = in
 		}
 	}
 	return cells
