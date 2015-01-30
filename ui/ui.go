@@ -26,9 +26,12 @@ var config Config
 
 const inputLabelWidth = 10
 const inputWidth = 9
+const inputMinutesBufWidth = 3
+const inputHzBufWidth = 5
 const keyLabelWidth = 3
 const keyWidth = 21
-const statusBarWidth = 55
+const statusBarWidth = 57
+const statusBarDefaultText = "Press 'space' to start capturing keys, 'Esc' to quit."
 
 // Must be called before any other function.
 func Init() error {
@@ -68,6 +71,9 @@ func Close() {
 }
 
 func DrawAll() {
+	inputs = nil
+	keys = nil
+	statusBar = nil
 	_, keysY := drawTitle(0, 0)
 	keysX, sbY := drawInputs(0, keysY+1)
 	_, _ = drawKeys(keysX+3, keysY+1)
@@ -80,7 +86,7 @@ func drawTitle(x, y int) (maxX, maxY int) {
 
 func drawStatusBar(x, y int) (maxX, maxY int) {
 	sbw := statusBarWidth
-	statusBar = NewStatusBar(x, y, sbw, "Press 'space' to start capturing keys, 'Esc' to quit.")
+	statusBar = NewStatusBar(x, y, sbw, statusBarDefaultText)
 	statusBar.Draw()
 	return statusBar.MaxX(), statusBar.MaxY()
 }
@@ -88,12 +94,12 @@ func drawStatusBar(x, y int) (maxX, maxY int) {
 func drawInputs(x, y int) (maxX, maxY int) {
 	const lw = inputLabelWidth
 	const w = inputWidth
-	in1 := NewInput(x, y+0, lw, "Mode", w, config.ModeS(), false, InputSwitch, ConfigMode)
-	in2 := NewInput(x, y+2, lw, "TotalTime", w, config.TotalTimeS(), true, InputNumericInt, ConfigTotalTime)
-	in3 := NewInput(x, y+4, lw, "Offset", w, config.OffsetS(), true, InputNumericInt, ConfigOffset)
-	in4 := NewInput(x, y+6, lw, "BaseHz", w, config.BaseHzS(), true, InputNumericFloat, ConfigBaseHz)
-	in5 := NewInput(x, y+8, lw, "StartHz", w, config.StartHzS(), true, InputNumericFloat, ConfigStartHz)
-	in6 := NewInput(x, y+10, lw, "EndHz", w, config.EndHzS(), true, InputNumericFloat, ConfigEndHz)
+	in1 := NewInput(x, y+0, lw, "Mode", w, 0, config.ModeS(), false, InputSwitch, ConfigMode)
+	in2 := NewInput(x, y+2, lw, "TotalTime", w, inputMinutesBufWidth, config.TotalTimeS(), true, InputNumericInt, ConfigTotalTime)
+	in3 := NewInput(x, y+4, lw, "Offset", w, inputMinutesBufWidth, config.OffsetS(), true, InputNumericInt, ConfigOffset)
+	in4 := NewInput(x, y+6, lw, "BaseHz", w, inputHzBufWidth, config.BaseHzS(), true, InputNumericFloat, ConfigBaseHz)
+	in5 := NewInput(x, y+8, lw, "StartHz", w, inputHzBufWidth, config.StartHzS(), true, InputNumericFloat, ConfigStartHz)
+	in6 := NewInput(x, y+10, lw, "EndHz", w, inputHzBufWidth, config.EndHzS(), true, InputNumericFloat, ConfigEndHz)
 	inputs = nil
 	inputs = append(inputs, in1, in2, in3, in4, in5, in6)
 	for _, in := range inputs {
@@ -294,7 +300,7 @@ func (sb StatusBar) Draw() {
 }
 
 func (sb StatusBar) UpdateTimer(seconds int) {
-	text(sb.X+1, sb.Y+1, formatTimer(seconds))
+	text(sb.X+1, sb.Y+1, FormatTimer(seconds))
 	termbox.Flush()
 }
 
@@ -311,9 +317,22 @@ func UpdateTimer(seconds int) {
 	}
 }
 
+func ResetTimer() {
+	if statusBar != nil {
+		fill(statusBar.X+1, statusBar.Y+1, statusBar.timerWidth, 1, ' ')
+		flush()
+	}
+}
+
 func UpdateText(text string) {
 	if statusBar != nil {
 		statusBar.UpdateText(text)
+	}
+}
+
+func ResetText() {
+	if statusBar != nil {
+		statusBar.UpdateText(statusBarDefaultText)
 	}
 }
 
@@ -328,5 +347,5 @@ func (c *Capture) Label() string {
 }
 
 func (c *Capture) Timestamp() string {
-	return formatTimer(c.Seconds)
+	return FormatTimer(c.Seconds)
 }

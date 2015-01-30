@@ -82,16 +82,28 @@ loop:
 			capturing = !capturing
 			if capturing {
 				c := ui.GetConfig()
-				go timer(c.TotalTime*60, letter, endTimer)
+				go timer(c.TotalTime*60, c.Offset*60, letter, endTimer)
 				timerEnded = false
 			}
 			if !capturing && !timerEnded {
 				endTimer <- true
 				logCaptures()
+				go func() {
+					time.Sleep(time.Second * 4)
+					ui.ResetText()
+					ui.ResetTimer()
+					ui.Debug("")
+				}()
 			}
 		case timerEnded, _ = <-endTimer:
 			capturing = false
 			logCaptures()
+			go func() {
+				time.Sleep(time.Second * 4)
+				ui.ResetText()
+				ui.ResetTimer()
+				ui.Debug("")
+			}()
 		case l := <-letter:
 			// If the timer is on, we keep resending the letter to the channel so
 			// that it will be eventually captured by the timer. If the timer is
@@ -104,29 +116,30 @@ loop:
 			if si := ui.SelectedInput(); si != nil {
 				if in.Enter {
 					if err := si.Valid(); err != nil {
-						ui.UpdateText(fmt.Sprintf("%v", err))
-						ui.Debug(fmt.Sprintf("1. %v", err))
+						ui.UpdateText(fmt.Sprintf("Invalid value (%v)", err))
 						continue
 					}
 					m, err := si.ValueMap()
 					if err != nil {
 						ui.UpdateText(fmt.Sprintf("%v", err))
-						ui.Debug(fmt.Sprintf("1,5. %v", err))
 						continue
 					}
 					c := ui.GetConfig()
 					if err := c.Update(m); err != nil {
 						ui.UpdateText(fmt.Sprintf("%v", err))
-						ui.Debug(fmt.Sprintf("2. %v", err))
+						continue
+					}
+					if err := c.Validate(); err != nil {
+						ui.UpdateText(fmt.Sprintf("Invalid value (%v)", err))
 						continue
 					}
 					if err := c.Save(); err != nil {
-						ui.UpdateText(fmt.Sprintf("%v", err))
-						ui.Debug(fmt.Sprintf("3. %v", err))
+						ui.UpdateText(fmt.Sprintf("Could not save (%v)", err))
 						continue
 					}
 					ui.UpdateConfig(c)
 					ui.ReloadInputs(c)
+					ui.UpdateText("Configuration changed successfully.")
 					ui.DeselectAllInputs()
 				} else {
 					si.SetBuf(in)
@@ -137,30 +150,43 @@ loop:
 				break loop
 			}
 			ui.DeselectAllInputs()
+			ui.ResetText()
 		}
 	}
 }
 
-func timer(maxSeconds int, letter chan rune, end chan bool) {
+func timer(maxSeconds, offsetSeconds int, letter chan rune, end chan bool) {
 	seconds := 0
 	expired := time.NewTimer(time.Second * time.Duration(maxSeconds)).C
 	tick := time.NewTicker(time.Second).C
 	ui.UpdateTimer(seconds)
 	ui.UpdateText("New Session started")
+	ui.Debug(fmt.Sprintf("Key Capturing starts in %v", ui.FormatTimer(offsetSeconds)))
 	for {
 		select {
 		case l := <-letter:
-			capture := ui.Capture{Value: l, Seconds: seconds, Hz: ui.CurrentHz(seconds)}
-			captures = append(captures, capture)
-			ui.UpdateText(ui.RecordedKeyText(l, seconds))
+			if offsetSeconds == 0 {
+				capture := ui.Capture{Value: l, Seconds: seconds, Hz: ui.CurrentHz(seconds)}
+				captures = append(captures, capture)
+				ui.UpdateText(ui.RecordedKeyText(l, seconds))
+			}
 		case <-end:
+			ui.UpdateText("Session stopped manually.")
 			return
 		case <-expired:
 			end <- true
+			ui.UpdateText("Session ended.")
 			return
 		case <-tick:
 			seconds += 1
 			ui.UpdateTimer(seconds)
+			if offsetSeconds == 0 {
+				ui.Debug("Key Capturing has started")
+			} else {
+				offsetSeconds -= 1
+				ui.Debug(fmt.Sprintf("Key Capturing starts in %v", ui.FormatTimer(offsetSeconds)))
+			}
+
 		}
 	}
 }
@@ -181,15 +207,17 @@ func captureEvents(letter chan rune, input chan *ui.Entry, start, done chan bool
 		//	input <- ev.Ch
 		case supportedLabel(ev.Ch):
 			letter <- ev.Ch
+		case ev.Type == termbox.EventResize:
+			ui.DrawAll()
 		case ev.Type == termbox.EventMouse:
 			cell := ui.GetCell(ev.MouseX, ev.MouseY)
-			ui.Debug(fmt.Sprintf("Mouse clicked (%d, %d) = %v -> %v", ev.MouseX, ev.MouseY, rtoa(cell.Ch), cell.Input))
+			//ui.Debug(fmt.Sprintf("Mouse clicked (%d, %d) = %v -> %v", ev.MouseX, ev.MouseY, rtoa(cell.Ch), cell.Input))
 			if cell.Input != nil {
 				if cell.Input.Type == ui.InputSwitch {
 					ui.DeselectAllInputs()
 					if err := cell.Input.Switch(); err != nil {
 						ui.UpdateText(fmt.Sprintf("%v", err))
-						ui.Debug(fmt.Sprintf("switch. %v", err))
+						//ui.Debug(fmt.Sprintf("switch. %v", err))
 						continue
 					}
 				} else {

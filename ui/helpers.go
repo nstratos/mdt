@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -10,18 +9,28 @@ import (
 )
 
 // Given the seconds passed, it returns the current Gz based on the formula:
-// CurrentHz = Seconds * Abs((EndHz - StartHz)) / ((TotalTime - Offset) * 60) + StartHz
+// CurrentHz = ( Seconds * Abs((EndHz - StartHz)) / ((TotalTime - Offset) * 60) ) + StartHz
 // for Offset < TotalTime
-func CurrentHz(seconds int) float64 {
-	offset := config.Offset
-	if offset >= config.TotalTime {
-		offset = 0
-	}
-	return (float64(seconds) * (math.Abs(config.EndHz - config.StartHz)) / float64((config.TotalTime-offset)*60)) + config.StartHz
+// func CurrentHz(seconds int) float64 {
+// 	offset := config.Offset
+// 	if offset >= config.TotalTime {
+// 		offset = 0
+// 	}
+// 	return (float64(seconds) * (math.Abs(config.EndHz - config.StartHz)) / float64((config.TotalTime-offset)*60)) + config.StartHz
+// }
+
+func CurrentHz(currentSecs int) float64 {
+
+	hzPerSecond := float64((config.EndHz - config.StartHz) / (float64((config.TotalTime - config.Offset) * 60)))
+	secondsSinceOffset := float64(currentSecs - (config.Offset * 60))
+
+	currentHz := float64(hzPerSecond*secondsSinceOffset + config.StartHz)
+
+	return currentHz
 }
 
 func RecordedKeyText(key rune, seconds int) string {
-	return fmt.Sprintf("Recorded %v (%.2fhz) on %v \"%v\"", strconv.QuoteRune(key), CurrentHz(seconds), formatTimer(seconds), Labels[key])
+	return fmt.Sprintf("Recorded %v (%.2fhz) on %v \"%v\"", strconv.QuoteRune(key), CurrentHz(seconds), FormatTimer(seconds), Labels[key])
 }
 
 func text(x, y int, s string) (maxX, maxY int) {
@@ -72,7 +81,7 @@ func Fill(x, y, w, h int, r rune) {
 	termbox.Flush()
 }
 
-func formatTimer(seconds int) string {
+func FormatTimer(seconds int) string {
 	min := seconds / 60
 	sec := seconds % 60
 	m := fmt.Sprintf("%v", min)

@@ -1,8 +1,8 @@
 {
   "Mode": 65,
-  "TotalTime": 1,
-  "Offset": 1,
+  "TotalTime": 30,
+  "Offset": 5,
   "BaseHz": 100,
-  "StartHz": 8,
+  "StartHz": 15,
   "EndHz": 8
 }

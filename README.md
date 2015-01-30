@@ -22,11 +22,11 @@ Program usage
 
     It calculates the exact hz by math. It assumes a meditation runs linearly from start hz to end hz over the whole of its running time. So if starting at 15 hz, going to 19 hz, in 20 minutes, if 'w' is pressed at 04:30 then the hz would be: 
 
-    `hz per second H = (19-15) / ((20-6) * 60)` total seconds passed is from counter, say S.
+    `hzPerSecond = (EndHz - StartHz) / (TotalTime - Offset) * 60`
 
-    `hz = S * H + start hz`
+	`secondsSinceOffset = currentSecs - (Offset * 60)`
 
-    `hz = S * (end hz - start hz) / ((total time - offset) * 60)`
+	`currentHz = hzPerSecond * secondsSinceOffset + StartHz`
 
     Each key corresponds to a label.
 

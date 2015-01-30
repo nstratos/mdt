@@ -2,10 +2,13 @@ package ui
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strconv"
 )
+
+const maxHz = 999.99
 
 type ConfigField string
 
@@ -29,6 +32,16 @@ type Config struct {
 	BaseHz    float64
 	StartHz   float64
 	EndHz     float64
+}
+
+func (c Config) Validate() error {
+	if c.Offset >= c.TotalTime {
+		return errors.New("Offset must be lower than total time")
+	}
+	if c.BaseHz > maxHz || c.StartHz > maxHz || c.EndHz > maxHz {
+		return errors.New("Hz value way too high")
+	}
+	return nil
 }
 
 func (c Config) Save() error {

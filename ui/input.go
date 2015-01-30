@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -23,6 +24,7 @@ type Input struct {
 	LabelW int    // label width
 	LabelT string // label text
 	W      int    // width
+	bufW   int    // buf width
 	T      string // text
 	a      bool   // attached draws with connected borders
 	s      bool   // selected
@@ -44,7 +46,7 @@ type cur struct {
 }
 
 func (in Input) newBuf() *b {
-	buf := make([]rune, 0, bufSize)
+	buf := make([]rune, 0, in.bufW)
 	cur := &cur{i: 0, x: in.TextStartX(), y: in.TextY()}
 	return &b{buf: buf, cur: cur}
 }
@@ -55,7 +57,7 @@ func (in *Input) ClearBuf() {
 }
 
 func (in *Input) SetBuf(e *Entry) {
-	Debug(e.String())
+	//Debug(e.String())
 	if e.Ch != 0 {
 		in.bufAppend(e.Ch)
 	}
@@ -103,12 +105,12 @@ func (in *Input) ValueMap() (map[string]interface{}, error) {
 func (in *Input) Valid() error {
 	if in.Type == InputNumericInt {
 		if _, err := strconv.Atoi(string(in.buf)); err != nil {
-			return err
+			return errors.New("Expecting number of minutes e.g. 60")
 		}
 	}
 	if in.Type == InputNumericFloat {
 		if _, err := strconv.ParseFloat(string(in.buf), 64); err != nil {
-			return err
+			return errors.New("Expecting decimal e.g. 50.65")
 		}
 	}
 	return nil
@@ -144,8 +146,8 @@ func (in Input) bufShow() {
 	in.SetText(string(in.buf))
 }
 
-func NewInput(x, y, labelW int, labelT string, w int, t string, a bool, it InputType, cf ConfigField) *Input {
-	in := &Input{x, y, labelW, labelT, w, t, a, false, nil, it, cf}
+func NewInput(x, y, labelW int, labelT string, w, bufW int, t string, a bool, it InputType, cf ConfigField) *Input {
+	in := &Input{x, y, labelW, labelT, w, bufW, t, a, false, nil, it, cf}
 	in.b = in.newBuf()
 	return in
 }
@@ -177,9 +179,11 @@ func (in Input) ClearText() {
 func (in Input) SetText(s string) {
 	in.ClearText()
 	text(in.TextStartX(), in.TextY(), s)
+	flush()
 }
 
 func (in Input) ResetText() {
+	in.ClearText()
 	text(in.TextStartX(), in.TextY(), in.T)
 	flush()
 }
@@ -240,6 +244,11 @@ func (in *Input) SetSelected(selected bool) {
 		in.ClearText()
 		in.bufShow()
 		setCursor(in.cur.x, in.cur.y)
+		if in.Type == InputNumericInt {
+			UpdateText(fmt.Sprintf("Enter minutes (Previous value: %s)", in.T))
+		} else if in.Type == InputNumericFloat {
+			UpdateText(fmt.Sprintf("Enter hz (Previous value: %s)", in.T))
+		}
 		//termbox.SetCursor(in.TextStartX(), in.TextY())
 	} else {
 		in.s = false
