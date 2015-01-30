@@ -25,7 +25,7 @@ var statusBar *StatusBar
 var config Config
 
 const inputLabelWidth = 10
-const inputWidth = 9
+const inputWidth = 10
 const inputMinutesBufWidth = 3
 const inputHzBufWidth = 5
 const keyLabelWidth = 3

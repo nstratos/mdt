@@ -70,10 +70,10 @@ func (in *Input) SetBuf(e *Entry) {
 
 func (in *Input) Switch() error {
 	c := GetConfig()
-	if c.Mode == 'A' {
-		c.Mode = 'B'
+	if c.Mode == "Binaural" {
+		c.Mode = "Isochronic"
 	} else {
-		c.Mode = 'A'
+		c.Mode = "Binaural"
 	}
 	if err := c.Save(); err != nil {
 		return err
@@ -313,6 +313,9 @@ func NewEntry(te termbox.Event) *Entry {
 	}
 	if te.Key == termbox.KeyDelete {
 		return &Entry{Delete: true}
+	}
+	if te.Key == termbox.KeyBackspace {
+		return &Entry{Backspace: true}
 	}
 	if te.Key == termbox.KeyBackspace2 {
 		return &Entry{Backspace: true}

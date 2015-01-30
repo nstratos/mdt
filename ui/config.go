@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"strconv"
 )
 
 const maxHz = 999.99
@@ -26,7 +25,7 @@ const (
 )
 
 type Config struct {
-	Mode      rune
+	Mode      string // A = Binaural, B = Isochronic
 	TotalTime int
 	Offset    int
 	BaseHz    float64
@@ -63,7 +62,7 @@ func writeConfig(c Config) error {
 func (c *Config) Load() error {
 	b, err := ioutil.ReadFile("config.json")
 	if err != nil {
-		c := Config{'A', 30, 5, 100, 15.00, 8.00}
+		c := Config{"Binaural", 30, 5, 100, 15.00, 8.00}
 		if err := writeConfig(c); err != nil {
 			return err
 		}
@@ -102,7 +101,7 @@ func UpdateConfig(c Config) {
 }
 
 func (c Config) ModeS() string {
-	return strconv.QuoteRuneToASCII(c.Mode)
+	return c.Mode
 }
 
 func (c Config) TotalTimeS() string {

@@ -30,7 +30,7 @@ func logCaptures() error {
 	if err != nil {
 		return err
 	}
-	_, err = f.WriteString(fmt.Sprintf("%v\r\nMode: %v\r\n", filename, strconv.QuoteRune(c.Mode)))
+	_, err = f.WriteString(fmt.Sprintf("%v\r\nMode: %v\r\n", filename, c.Mode))
 	if err != nil {
 		return err
 	}
