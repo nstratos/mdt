@@ -88,22 +88,10 @@ loop:
 			if !capturing && !timerEnded {
 				endTimer <- true
 				logCaptures()
-				go func() {
-					time.Sleep(time.Second * 4)
-					ui.ResetText()
-					ui.ResetTimer()
-					ui.Debug("")
-				}()
 			}
 		case timerEnded, _ = <-endTimer:
 			capturing = false
 			logCaptures()
-			go func() {
-				time.Sleep(time.Second * 4)
-				ui.ResetText()
-				ui.ResetTimer()
-				ui.Debug("")
-			}()
 		case l := <-letter:
 			// If the timer is on, we keep resending the letter to the channel so
 			// that it will be eventually captured by the timer. If the timer is
@@ -160,7 +148,7 @@ func timer(maxSeconds, offsetSeconds int, letter chan rune, end chan bool) {
 	expired := time.NewTimer(time.Second * time.Duration(maxSeconds)).C
 	tick := time.NewTicker(time.Second).C
 	ui.UpdateTimer(seconds)
-	ui.UpdateText("New Session started")
+	ui.UpdateText("New Session started, press 'space' to stop, 'Esc' to quit.")
 	ui.Debug(fmt.Sprintf("Key Capturing starts in %v", ui.FormatTimer(offsetSeconds)))
 	for {
 		select {

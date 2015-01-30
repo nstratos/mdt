@@ -30,7 +30,7 @@ const inputMinutesBufWidth = 3
 const inputHzBufWidth = 5
 const keyLabelWidth = 3
 const keyWidth = 21
-const statusBarWidth = 57
+const statusBarWidth = 60
 const statusBarDefaultText = "Press 'space' to start capturing keys, 'Esc' to quit."
 
 // Must be called before any other function.
