@@ -327,7 +327,7 @@ func NewEntry(te termbox.Event) *Entry {
 }
 
 func AllowedEntry(te termbox.Event) bool {
-	if te.Key == termbox.KeyDelete || te.Key == termbox.KeyBackspace2 || te.Key == termbox.KeyEnter {
+	if te.Key == termbox.KeyDelete || te.Key == termbox.KeyBackspace || te.Key == termbox.KeyBackspace2 || te.Key == termbox.KeyEnter {
 		return true
 	}
 	key := te.Ch
