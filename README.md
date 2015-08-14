@@ -45,20 +45,20 @@ application and not a web one.
 
 1.  Input total running time in two digit integer. Say '15' Have stop button 
     if stopped early.
-2.  Input offset time in minutes, say '6' (integer 0-99)
+2.  Input offset time in minutes, say '6' (integer 0-99).
     * Select which mode: A or B. Only one can be active.
-    * Input for 3 digit integer for Base. Say '80'. Or '150'
-3.  Input start hz in numbers, say '14,54' (2 decimals)
+    * Input for 3 digit integer for Base. Say '80'. Or '150'.
+3.  Input start hz in numbers, say '14,54' (2 decimals).
 4.  Input end hz in numbers, say '15,38' (2 decimals).
 5.  Press Start button. This starts the timer for total running time.
 
     Now the program will start and record keypresses for the q,w,e,a,s,d keys.
 
     Whenever one such key is pressed it will log the exact hz, the time plus 
-the label associated with a key. (and maybe calculation Base hz too for linear 
-base hz progression)
+the label associated with a key (and maybe calculation Base hz too for linear 
+base hz progression).
 
-6.  'w' is pressed, log says: 15,05hz @ 80 base hz, on 04:30 Visual memory 
+6.  'w' is pressed, log says: 15,05hz @ 80 base hz, on 04:30 Visual memory .
 
     It calculates the exact hz by math. It assumes a meditation runs linearly 
 from start hz to end hz over the whole of its running time. So if starting at 
@@ -82,7 +82,7 @@ would be:
     | e   | language voice       |
     | d   | language thought     |
 
-    Use a newline after each logged occurence.
+    Use a newline after each logged occurrence.
 
 7.  Program stops after running time has passed, or when stopped by user 
     pressing Stop button.
@@ -91,5 +91,5 @@ would be:
     S-E hz day date month time where S is start hz and E is end hz, so for 
     example file name: '15-19 hz wed 27 dec 22.09.txt'
 
-    Put at the top of the text file the filename and the mode used (A or B)
+    Put at the top of the text file the filename and the mode used (A or B).
 
