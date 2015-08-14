@@ -32,6 +32,13 @@ go build
 * End the program anytime by pressing 'Esc'.
 * View the log that was produced.
 
+## Screenshots
+
+![mdt changing configuration](/screenshots/mdt_input.png?raw=true "Changing configuration")
+
+![mdt capturing key press](/screenshots/mdt_capturing.png?raw=true "Capturing key press")
+
+
 ## Specifications
 
 The program should work on Windows and preferably it should be a standalone 
