@@ -4,7 +4,7 @@ Simple program to aid during meditation. Logs exact Hz plus label of mind occurr
 
 **Note**: This is a small program I wrote for a friend of mine. It's quite 
 unlikely that you will be able to use the program itself for any real purpose. 
-Nevertheless, after taking permission, I decided to open source it in case 
+Nevertheless, after taking permission, I decided to open source it, in case 
 someone finds the code useful, maybe to write something with similar 
 functionality. The code is a little messy so be careful.
 
@@ -12,7 +12,7 @@ Things that might interest you:
 
 * Use of [termbox-go](https://github.com/nsf/termbox-go) to receive keys from 
   keyboard.
-* Use of channels to synchronize timers based on key pressed.
+* Use of channels to synchronize timers based on key presses.
 * Text based input that is enabled on mouse click.
 
 ## Usage
@@ -20,10 +20,8 @@ Things that might interest you:
 * Download the executable and place in a folder (it will produce logs and 
   config.json) or build your own:
 
-```go
-go get github.com/nstratos/mdt
-go build
-```
+    go get github.com/nstratos/mdt
+    go build
 
 * Click with the mouse on the configuration values (Like Mode, Offset etc) to
   change them.
