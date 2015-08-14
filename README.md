@@ -17,8 +17,8 @@ Things that might interest you:
 
 ## Usage
 
-* Download the [latest executable](/releases) and place it in a folder (it will
-  produce logs and config.json) or build your own:
+* Download the [latest executable](https://github.com/nstratos/mdt/releases) and 
+  place it in a folder (it will produce logs and config.json) or build your own:
 ```
     go get github.com/nstratos/mdt
     go build
