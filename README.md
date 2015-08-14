@@ -17,7 +17,8 @@ Things that might interest you:
 
 ## Usage
 
-* Download the executable or
+* Download the executable and place in a folder (it will produce logs and 
+  config.json) or build your own:
 
 ```go
 go get github.com/nstratos/mdt
