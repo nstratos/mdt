@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
 	"bitbucket.org/nstratos/mdt/ui"
@@ -26,7 +25,6 @@ func logCaptures() error {
 	format := "Mon 02 Jan 15.04"
 	filename := fmt.Sprintf("%v-%v hz %v", c.StartHz, c.EndHz, time.Now().Format(format))
 	f, err := os.Create(filename + ".txt")
-	//err := ioutil.WriteFile(, []byte(filename+"\n"), 0644)
 	if err != nil {
 		return err
 	}
@@ -153,6 +151,8 @@ func timer(maxSeconds, offsetSeconds int, letter chan rune, end chan bool) {
 	for {
 		select {
 		case l := <-letter:
+			// If user has set an offset it means that we have to wait for that amount
+			// of seconds. Thus unless it reaches 0 we ignore label keypresses.
 			if offsetSeconds == 0 {
 				capture := ui.Capture{Value: l, Seconds: seconds, Hz: ui.CurrentHz(seconds)}
 				captures = append(captures, capture)
@@ -166,12 +166,12 @@ func timer(maxSeconds, offsetSeconds int, letter chan rune, end chan bool) {
 			ui.UpdateText("Session ended.")
 			return
 		case <-tick:
-			seconds += 1
+			seconds++
 			ui.UpdateTimer(seconds)
 			if offsetSeconds == 0 {
 				ui.Debug("Key Capturing has started")
 			} else {
-				offsetSeconds -= 1
+				offsetSeconds--
 				ui.Debug(fmt.Sprintf("Key Capturing starts in %v", ui.FormatTimer(offsetSeconds)))
 			}
 
@@ -191,15 +191,12 @@ func captureEvents(letter chan rune, input chan *ui.Entry, start, done chan bool
 			start <- started
 		case ui.AllowedEntry(ev):
 			input <- ui.NewEntry(ev)
-		//case allowedInput(ev.Ch):
-		//	input <- ev.Ch
 		case supportedLabel(ev.Ch):
 			letter <- ev.Ch
 		case ev.Type == termbox.EventResize:
 			ui.DrawAll()
 		case ev.Type == termbox.EventMouse:
 			cell := ui.GetCell(ev.MouseX, ev.MouseY)
-			//ui.Debug(fmt.Sprintf("Mouse clicked (%d, %d) = %v -> %v", ev.MouseX, ev.MouseY, rtoa(cell.Ch), cell.Input))
 			if cell.Input != nil {
 				if cell.Input.Type == ui.InputSwitch {
 					ui.DeselectAllInputs()
@@ -214,20 +211,11 @@ func captureEvents(letter chan rune, input chan *ui.Entry, start, done chan bool
 			} else {
 				ui.DeselectAllInputs()
 			}
-			//input := ui.Scan(ev.MouseX, ev.MouseX+3, ev.MouseY)
-			//printText(2, 22, fmt.Sprintf("Mouse clicked (%d, %d) = %v", ev.MouseX, ev.MouseY, input))
-			//termbox.Flush()
-			// case ev.Key == termbox.KeyEnter:
-			// 	ui.Input()
 		}
 	}
 }
 
-func rtoa(r rune) string {
-	return strconv.QuoteRuneToASCII(r)
-}
-
-// 'a' = 97		-> visual imagination
+// 'a' = 97	-> visual imagination
 // 'd' = 100	-> language thought
 // 'e' = 101	-> language voice
 // 'q' = 113	-> visual memory

@@ -8,7 +8,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-// Given the seconds passed, it returns the current Gz based on the formula:
+// CurrentHz given the seconds passed, it returns the current Gz based on the formula:
 // CurrentHz = ( Seconds * Abs((EndHz - StartHz)) / ((TotalTime - Offset) * 60) ) + StartHz
 // for Offset < TotalTime
 // func CurrentHz(seconds int) float64 {
@@ -18,7 +18,6 @@ import (
 // 	}
 // 	return (float64(seconds) * (math.Abs(config.EndHz - config.StartHz)) / float64((config.TotalTime-offset)*60)) + config.StartHz
 // }
-
 func CurrentHz(currentSecs int) float64 {
 
 	hzPerSecond := float64((config.EndHz - config.StartHz) / (float64((config.TotalTime - config.Offset) * 60)))
@@ -29,6 +28,7 @@ func CurrentHz(currentSecs int) float64 {
 	return currentHz
 }
 
+// RecordedKeyText returns a message indicating the key pressed, it's hz value and a timestamp of when it was received.
 func RecordedKeyText(key rune, seconds int) string {
 	return fmt.Sprintf("Recorded %v (%.2fhz) on %v \"%v\"", strconv.QuoteRune(key), CurrentHz(seconds), FormatTimer(seconds), Labels[key])
 }
@@ -43,20 +43,20 @@ func text(x, y int, s string) (maxX, maxY int) {
 	for _, t := range text {
 		for _, r := range t {
 			termbox.SetCell(x, y, r, termbox.ColorDefault, termbox.ColorDefault)
-			x += 1
+			x++
 		}
 		if x > mx {
 			mx = x
 		}
 		x = tempx
-		y += 1
+		y++
 	}
 	// Because we always icrease it one more.
-	y -= 1
+	y--
 	return mx, y
 }
 
-// Draws text on the screen. When it encounters a new line
+// Text draws text on the screen. When it encounters a new line
 // it continues to draw from the next line.
 func Text(x, y int, s string) (maxX, maxY int) {
 	mx, my := text(x, y, s)
@@ -76,11 +76,14 @@ func fill(x, y, w, h int, r rune) {
 	tbfill(x, y, w, h, termbox.Cell{Ch: r})
 }
 
+// Fill fills cells of the screen with a rune r, starting from x, y and
+// reaching a certain width w and height h.
 func Fill(x, y, w, h int, r rune) {
 	fill(x, y, w, h, r)
 	termbox.Flush()
 }
 
+// FormatTimer accepts seconds and returns them in a timer format.
 func FormatTimer(seconds int) string {
 	min := seconds / 60
 	sec := seconds % 60
@@ -99,6 +102,7 @@ func rtoa(r rune) string {
 	return strconv.QuoteRuneToASCII(r)
 }
 
+// Debug prints a debug message on the screen.
 func Debug(s string) {
 	x, y := termbox.Size()
 	fill(2, y-2, x-1, 1, ' ')

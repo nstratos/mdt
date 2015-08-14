@@ -9,21 +9,25 @@ import (
 
 const maxHz = 999.99
 
+// ConfigField is a key of each configuration value. Each input holds a
+// configuration field so it's easier to update the config.
 type ConfigField string
 
+// Val returns the configuration field's value.
 func (cf ConfigField) Val() string {
 	return string(cf)
 }
 
 const (
-	ConfigMode      ConfigField = "Mode"
-	ConfigTotalTime ConfigField = "TotalTime"
-	ConfigOffset    ConfigField = "Offset"
-	ConfigBaseHz    ConfigField = "BaseHz"
-	ConfigStartHz   ConfigField = "StartHz"
-	ConfigEndHz     ConfigField = "EndHz"
+	configMode      ConfigField = "Mode"
+	configTotalTime ConfigField = "TotalTime"
+	configOffset    ConfigField = "Offset"
+	configBaseHz    ConfigField = "BaseHz"
+	configStartHz   ConfigField = "StartHz"
+	configEndHz     ConfigField = "EndHz"
 )
 
+// Config represents the program's configuration.
 type Config struct {
 	Mode      string // A = Binaural, B = Isochronic
 	TotalTime int
@@ -33,6 +37,7 @@ type Config struct {
 	EndHz     float64
 }
 
+// Validate returns an error if the values of the configuration are not valid.
 func (c Config) Validate() error {
 	if c.Offset >= c.TotalTime {
 		return errors.New("Offset must be lower than total time")
@@ -43,6 +48,7 @@ func (c Config) Validate() error {
 	return nil
 }
 
+// Save writes the configuration to config.json file.
 func (c Config) Save() error {
 	return writeConfig(c)
 }
@@ -59,6 +65,7 @@ func writeConfig(c Config) error {
 	return nil
 }
 
+// Load loads configuration from the config.json file.
 func (c *Config) Load() error {
 	b, err := ioutil.ReadFile("config.json")
 	if err != nil {
@@ -80,6 +87,8 @@ func (c *Config) Load() error {
 	return nil
 }
 
+// Update updates the configuration values be accepting a map of these values
+// using the key of each configuration field.
 func (c *Config) Update(m map[string]interface{}) error {
 	tmp, err := json.Marshal(m)
 	if err != nil {
@@ -92,34 +101,42 @@ func (c *Config) Update(m map[string]interface{}) error {
 	return nil
 }
 
+// GetConfig returns the configuration.
 func GetConfig() Config {
 	return config
 }
 
+// UpdateConfig updates the configuration.
 func UpdateConfig(c Config) {
 	config = c
 }
 
+// ModeS returns a string representation of the mode.
 func (c Config) ModeS() string {
 	return c.Mode
 }
 
+// TotalTimeS returns a string representation of the total time.
 func (c Config) TotalTimeS() string {
 	return fmt.Sprintf("%v min", c.TotalTime)
 }
 
+// OffsetS returns a string representation of the offset.
 func (c Config) OffsetS() string {
 	return fmt.Sprintf("%v min", c.Offset)
 }
 
+// BaseHzS returns a string representation of the base hz.
 func (c Config) BaseHzS() string {
 	return fmt.Sprintf("%.2f hz", c.BaseHz)
 }
 
+// StartHzS returns a string representation of the start hz.
 func (c Config) StartHzS() string {
 	return fmt.Sprintf("%.2f hz", c.StartHz)
 }
 
+// EndHzS returns a string representation of the end hz.
 func (c Config) EndHzS() string {
 	return fmt.Sprintf("%.2f hz", c.EndHz)
 }
