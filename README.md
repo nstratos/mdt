@@ -19,10 +19,10 @@ Things that might interest you:
 
 * Download the executable and place in a folder (it will produce logs and 
   config.json) or build your own:
-
+```
     go get github.com/nstratos/mdt
     go build
-
+```
 * Click with the mouse on the configuration values (Like Mode, Offset etc) to
   change them.
 * Press the spacebar to start the timer.
