@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"bitbucket.org/nstratos/mdt/ui"
+	"github.com/nstratos/mdt/ui"
 
 	"github.com/nsf/termbox-go"
 )
