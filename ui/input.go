@@ -293,7 +293,7 @@ func (in *Input) SetSelected(selected bool) {
 		termbox.HideCursor()
 	}
 
-	termbox.Flush()
+	flush()
 }
 
 // SelectedInput returns the input that is currently selected.

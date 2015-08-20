@@ -1,6 +1,10 @@
 package ui
 
-import "github.com/nsf/termbox-go"
+import (
+	"sync"
+
+	"github.com/nsf/termbox-go"
+)
 
 // Labels is a map of each allowed key press (rune) to it's full string label.
 var Labels = map[rune]string{
@@ -19,20 +23,24 @@ const title = `           _ _
                  
 `
 
-//var cells [][]Cell
-var inputs []*Input
-var keys []*KeyLabel
-var statusBar *StatusBar
-var config Config
+var (
+	mu        sync.Mutex
+	inputs    []*Input
+	keys      []*KeyLabel
+	statusBar *StatusBar
+	config    Config
+)
 
-const inputLabelWidth = 10
-const inputWidth = 10
-const inputMinutesBufWidth = 3
-const inputHzBufWidth = 5
-const keyLabelWidth = 3
-const keyWidth = 21
-const statusBarWidth = 60
-const statusBarDefaultText = "Press 'space' to start capturing keys, 'Esc' to quit."
+const (
+	inputLabelWidth      = 10
+	inputWidth           = 10
+	inputMinutesBufWidth = 3
+	inputHzBufWidth      = 5
+	keyLabelWidth        = 3
+	keyWidth             = 21
+	statusBarWidth       = 60
+	statusBarDefaultText = "Press 'space' to start capturing keys, 'Esc' to quit."
+)
 
 // Init must be called before any other function. It initializes
 // configuration and termbox.
@@ -70,7 +78,9 @@ func initTermbox() error {
 
 // Close should be deferred after initialization. It finalizes termbox library.
 func Close() {
+	mu.Lock()
 	termbox.Close()
+	mu.Unlock()
 }
 
 // DrawAll draws the title, the inputs, the key labels and the status bar.
@@ -318,14 +328,14 @@ func (sb StatusBar) Draw() {
 	fill(x+tw+2+w, y+2, 1, 1, '╝')
 	text(x+tw+2, y+1, t)
 
-	termbox.Flush()
+	flush()
 }
 
 // UpdateTimer updates the timer of the status bar by a specified amount of
 // seconds.
 func (sb StatusBar) UpdateTimer(seconds int) {
 	text(sb.X+1, sb.Y+1, FormatTimer(seconds))
-	termbox.Flush()
+	flush()
 }
 
 // UpdateText updates the text of the status bar.
@@ -333,7 +343,7 @@ func (sb StatusBar) UpdateText(t string) {
 	//Text(sb.X+sb.timerWidth+2, sb.Y+1, text[0:sb.Width]) // text[0:sb.Width] panics for some reason
 	fill(sb.X+sb.timerWidth+2, sb.Y+1, sb.Width, 1, ' ')
 	text(sb.X+sb.timerWidth+2, sb.Y+1, t)
-	termbox.Flush()
+	flush()
 }
 
 // UpdateTimer is a helper function that updates the status bar's timer.

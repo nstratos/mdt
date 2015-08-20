@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/nsf/termbox-go"
 )
@@ -34,6 +35,7 @@ func RecordedKeyText(key rune, seconds int) string {
 }
 
 func text(x, y int, s string) (maxX, maxY int) {
+	mu.Lock()
 	mx := 0
 	tempx := x
 	text := []string{s}
@@ -53,23 +55,28 @@ func text(x, y int, s string) (maxX, maxY int) {
 	}
 	// Because we always icrease it one more.
 	y--
+	mu.Unlock()
 	return mx, y
 }
+
+var mu sync.Mutex
 
 // Text draws text on the screen. When it encounters a new line
 // it continues to draw from the next line.
 func Text(x, y int, s string) (maxX, maxY int) {
 	mx, my := text(x, y, s)
-	termbox.Flush()
+	flush()
 	return mx, my
 }
 
 func tbfill(x, y, w, h int, cell termbox.Cell) {
+	mu.Lock()
 	for ly := 0; ly < h; ly++ {
 		for lx := 0; lx < w; lx++ {
 			termbox.SetCell(x+lx, y+ly, cell.Ch, cell.Fg, cell.Bg)
 		}
 	}
+	mu.Unlock()
 }
 
 func fill(x, y, w, h int, r rune) {
@@ -80,7 +87,7 @@ func fill(x, y, w, h int, r rune) {
 // reaching a certain width w and height h.
 func Fill(x, y, w, h int, r rune) {
 	fill(x, y, w, h, r)
-	termbox.Flush()
+	flush()
 }
 
 // FormatTimer accepts seconds and returns them in a timer format.
@@ -110,7 +117,9 @@ func Debug(s string) {
 }
 
 func flush() {
+	mu.Lock()
 	termbox.Flush()
+	mu.Unlock()
 }
 
 func setCursor(x, y int) {
