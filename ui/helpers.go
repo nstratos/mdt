@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/nsf/termbox-go"
 )
@@ -58,8 +57,6 @@ func text(x, y int, s string) (maxX, maxY int) {
 	mu.Unlock()
 	return mx, y
 }
-
-var mu sync.Mutex
 
 // Text draws text on the screen. When it encounters a new line
 // it continues to draw from the next line.
