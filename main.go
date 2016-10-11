@@ -1,10 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/nstratos/mdt/ui"
@@ -14,6 +16,10 @@ import (
 
 // Global holder of captured key presses.
 var captures = make([]ui.Capture, 0)
+
+var (
+	showVersion = flag.Bool("v", false, "print program version and exit")
+)
 
 // Logs to .txt file in program's directory, named: S-E hz day date month time
 // where S is start hz and E is end hz, e.g. '15-19 hz wed 27 dec 22.09.txt'
@@ -47,6 +53,11 @@ func logCaptures() error {
 }
 
 func main() {
+	flag.Parse()
+	if *showVersion {
+		fmt.Printf("%s %s (runtime: %s)\n", os.Args[0], ui.Version, runtime.Version())
+		os.Exit(0)
+	}
 
 	if err := ui.Init(); err != nil {
 		log.Println("Could not initialize: ", err)
