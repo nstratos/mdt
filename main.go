@@ -50,8 +50,8 @@ func main() {
 
 	if err := ui.Init(); err != nil {
 		log.Println("Could not initialize: ", err)
-		if err := ioutil.WriteFile("debug.txt", []byte(fmt.Sprintf("%s", err)), 0644); err != nil {
-			log.Fatalln(err)
+		if werr := ioutil.WriteFile("debug.txt", []byte(fmt.Sprintf("%s", err)), 0644); werr != nil {
+			log.Fatalln(werr)
 			os.Exit(1)
 		}
 		os.Exit(1)
