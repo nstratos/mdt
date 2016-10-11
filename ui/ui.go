@@ -24,6 +24,7 @@ const title = `           _ _
 `
 
 var (
+	Version   = "devel"
 	mu        sync.Mutex
 	inputs    []*Input
 	keys      []*KeyLabel
@@ -89,14 +90,20 @@ func DrawAll() {
 	inputs = nil
 	keys = nil
 	statusBar = nil
-	_, keysY := drawTitle(0, 0)
+	_, keysY := drawTitle(0, 0, Version)
 	keysX, sbY := drawInputs(0, keysY+1)
 	_, _ = drawKeys(keysX+3, keysY+1)
 	_, _ = drawStatusBar(0, sbY+1)
 }
 
-func drawTitle(x, y int) (maxX, maxY int) {
-	return text(x, y, title)
+func drawTitle(x, y int, version string) (maxX, maxY int) {
+	titleX, titleY := text(x, y, title)
+	if version != "devel" {
+		version = "v" + version
+	}
+	// draw version
+	text(titleX+1, titleY-2, version)
+	return titleX, titleY
 }
 
 func drawStatusBar(x, y int) (maxX, maxY int) {
