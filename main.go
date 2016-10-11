@@ -85,11 +85,15 @@ loop:
 			}
 			if !capturing && !timerEnded {
 				endTimer <- true
-				logCaptures()
+				if err := logCaptures(); err != nil {
+					ui.Debug(fmt.Sprintf("Error logging to txt file: %v", err))
+				}
 			}
 		case timerEnded, _ = <-endTimer:
 			capturing = false
-			logCaptures()
+			if err := logCaptures(); err != nil {
+				ui.Debug(fmt.Sprintf("Error logging to txt file: %v", err))
+			}
 		case l := <-letter:
 			// If the timer is on, we keep resending the letter to the channel so
 			// that it will be eventually captured by the timer. If the timer is
