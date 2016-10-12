@@ -17,13 +17,17 @@ Things that might interest you:
 
 ## Usage
 
-* Download the [latest executable](https://github.com/nstratos/mdt/releases) and 
-  place it in a folder (it will produce logs and config.json) or build your own:
+* Download the [latest executable](https://github.com/nstratos/mdt/releases)
+  for your platform and place it in a folder (it will produce logs and a
+  config.json file).
+
+  If you have Go installed on your system you can build an executable with:
 ```
     go get github.com/nstratos/mdt
-    go build
+    cd $GOPATH/src/github.com/nstratos/mdt
+    go run make.go
 ```
-* Click with the mouse on the configuration values (Like Mode, Offset etc) to
+* Click with the mouse on the configuration values (Like Mode, Offset etc.) to
   change them.
 * Press the spacebar to start the timer.
 * After key capturing starts, record key presses (q, w, e, a, s or d).
