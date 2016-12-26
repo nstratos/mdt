@@ -59,11 +59,7 @@ func Init() error {
 // Loading configuration from config.json
 func initConfig() error {
 	config = Config{}
-	err := config.Load()
-	if err != nil {
-		return err
-	}
-	return nil
+	return config.Load()
 }
 
 // Initializing termbox

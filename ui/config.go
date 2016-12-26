@@ -74,11 +74,7 @@ func writeConfig(c Config) error {
 		return err
 	}
 	p := filepath.Join(u.HomeDir, configFolder, configFile)
-	err = ioutil.WriteFile(p, b, 0644)
-	if err != nil {
-		return err
-	}
-	return nil
+	return ioutil.WriteFile(p, b, 0644)
 }
 
 func createConfigFolderIfNotExist() error {
