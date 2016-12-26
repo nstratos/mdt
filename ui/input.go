@@ -8,8 +8,6 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-const bufSize = 5
-
 // InputType is the type of each input which can be either an input that
 // accepts integers, an input that accepts float or an input that switches
 // value on click.
@@ -48,7 +46,7 @@ type b struct {
 
 // cursor of an input.
 type cur struct {
-	i int // 0 < index < bufSize
+	i int
 	x int
 	y int
 }
