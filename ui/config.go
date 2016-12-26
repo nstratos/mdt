@@ -99,8 +99,8 @@ func (c *Config) Load() error {
 	}
 	configPath := filepath.Join(u.HomeDir, configFolder, configFile)
 	// If config does not exist, it gets created with default values.
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		if err := writeConfig(defaultConfig); err != nil {
+	if _, err = os.Stat(configPath); os.IsNotExist(err) {
+		if err = writeConfig(defaultConfig); err != nil {
 			return err
 		}
 	}
