@@ -70,8 +70,7 @@ func initTermbox() error {
 	}
 	termbox.SetInputMode(termbox.InputEsc | termbox.InputMouse)
 	termbox.SetOutputMode(termbox.OutputNormal)
-	termbox.Clear(termbox.ColorWhite, termbox.ColorDefault)
-	return nil
+	return termbox.Clear(termbox.ColorWhite, termbox.ColorDefault)
 }
 
 // Close should be deferred after initialization. It finalizes termbox library.
