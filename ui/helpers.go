@@ -20,10 +20,10 @@ import (
 // }
 func CurrentHz(currentSecs int) float64 {
 
-	hzPerSecond := float64((config.EndHz - config.StartHz) / (float64((config.TotalTime - config.Offset) * 60)))
+	hzPerSecond := (config.EndHz - config.StartHz) / (float64((config.TotalTime - config.Offset) * 60))
 	secondsSinceOffset := float64(currentSecs - (config.Offset * 60))
 
-	currentHz := float64(hzPerSecond*secondsSinceOffset + config.StartHz)
+	currentHz := hzPerSecond*secondsSinceOffset + config.StartHz
 
 	return currentHz
 }
