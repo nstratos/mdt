@@ -18,8 +18,7 @@ Things that might interest you:
 ## Usage
 
 * Download the [latest executable](https://github.com/nstratos/mdt/releases)
-  for your platform and place it in a folder (it will produce logs and a
-  config.json file).
+  for your platform and place it in a folder (it will produce logs).
 
   If you have Go installed on your system you can build an executable with:
 ```
