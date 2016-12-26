@@ -24,14 +24,13 @@ const (
 
 // Input represents an input box on the screen.
 type Input struct {
-	X      int
-	Y      int
+	X, Y   int
 	LabelW int    // label width
 	LabelT string // label text
 	W      int    // width
 	bufW   int    // buffer width
 	T      string // text
-	a      bool   // attached draws with connected borders
+	a      bool   // attached (draws with connected borders)
 	s      bool   // selected
 	*b            // buffer
 	Type   InputType
@@ -163,7 +162,20 @@ func (in Input) bufShow() {
 
 // NewInput returns a new Input.
 func NewInput(x, y, labelW int, labelT string, w, bufW int, t string, a bool, it InputType, cf ConfigField) *Input {
-	in := &Input{x, y, labelW, labelT, w, bufW, t, a, false, nil, it, cf}
+	in := &Input{
+		X:      x,
+		Y:      y,
+		LabelW: labelW,
+		LabelT: labelT,
+		W:      w,
+		bufW:   bufW,
+		T:      t,
+		a:      a,
+		s:      false,
+		b:      nil,
+		Type:   it,
+		Field:  cf,
+	}
 	in.b = in.newBuf()
 	return in
 }
