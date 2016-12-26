@@ -68,7 +68,6 @@ func main() {
 		targets: []platform{
 			{os: "linux", arch: "386"}, {os: "linux", arch: "amd64"},
 			{os: "windows", arch: "386"}, {os: "windows", arch: "amd64"},
-			{os: "darwin", arch: "386"}, {os: "darwin", arch: "amd64"},
 		},
 	}
 	bin.version = getVersion()
