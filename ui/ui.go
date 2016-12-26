@@ -24,6 +24,7 @@ const title = `           _ _
 `
 
 var (
+	// Version holds the program version.
 	Version   = "devel"
 	mu        sync.Mutex
 	inputs    []*Input

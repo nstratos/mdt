@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/user"
+	"path/filepath"
 )
 
 const maxHz = 999.99
@@ -19,6 +22,9 @@ func (cf ConfigField) Val() string {
 }
 
 const (
+	configFolder = ".mdt"
+	configFile   = "config.json"
+
 	configMode      ConfigField = "Mode"
 	configTotalTime ConfigField = "TotalTime"
 	configOffset    ConfigField = "Offset"
@@ -26,6 +32,8 @@ const (
 	configStartHz   ConfigField = "StartHz"
 	configEndHz     ConfigField = "EndHz"
 )
+
+var defaultConfig = Config{"Binaural", 30, 5, 100, 15.00, 8.00}
 
 // Config represents the program's configuration.
 type Config struct {
@@ -54,29 +62,55 @@ func (c Config) Save() error {
 }
 
 func writeConfig(c Config) error {
-	json, err := json.MarshalIndent(c, "", "  ")
+	b, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile("config.json", json, 0644)
+	u, err := user.Current()
+	if err != nil {
+		return err
+	}
+	if err := createConfigFolderIfNotExist(); err != nil {
+		return err
+	}
+	p := filepath.Join(u.HomeDir, configFolder, configFile)
+	err = ioutil.WriteFile(p, b, 0644)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+func createConfigFolderIfNotExist() error {
+	u, err := user.Current()
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(u.HomeDir, configFolder)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if err := os.Mkdir(path, os.ModePerm); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Load loads configuration from the config.json file.
 func (c *Config) Load() error {
-	b, err := ioutil.ReadFile("config.json")
+	u, err := user.Current()
 	if err != nil {
-		c := Config{"Binaural", 30, 5, 100, 15.00, 8.00}
-		if err := writeConfig(c); err != nil {
+		return err
+	}
+	configPath := filepath.Join(u.HomeDir, configFolder, configFile)
+	// If config does not exist, it gets created with default values.
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		if err := writeConfig(defaultConfig); err != nil {
 			return err
 		}
-		b, err = ioutil.ReadFile("config.json")
-		if err != nil {
-			return err
-		}
+	}
+	b, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return err
 	}
 	//s, _ := strconv.Unquote(string(b))
 	//err = json.Unmarshal([]byte(s), c)
@@ -94,11 +128,7 @@ func (c *Config) Update(m map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(tmp, c)
-	if err != nil {
-		return fmt.Errorf("Unmarshal: %v\n", err)
-	}
-	return nil
+	return json.Unmarshal(tmp, c)
 }
 
 // GetConfig returns the configuration.
