@@ -13,6 +13,10 @@ builds:
       - amd64
     binary: "mdt{{ .Version }}.{{ .Os }}-{{ .Arch }}"
     no_unique_dist_dir: true
+archives:
+  - format_overrides:
+    - goos: windows
+      format: zip
 checksum:
   name_template: 'checksums.txt'
 snapshot:
