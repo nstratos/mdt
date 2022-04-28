@@ -11,12 +11,13 @@ builds:
     goarch:
       - 386
       - amd64
-    binary: "mdt{{ .Version }}.{{ .Os }}-{{ .Arch }}"
+    binary: "{{.ProjectName}}{{ .Version }}.{{ .Os }}-{{ .Arch }}"
     no_unique_dist_dir: true
 archives:
   - format_overrides:
     - goos: windows
       format: zip
+    name_template: "{{.ProjectName}}{{.Version}}.{{.Os}}-{{.Arch}}"
 checksum:
   name_template: 'checksums.txt'
 snapshot:
