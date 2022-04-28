@@ -46,7 +46,8 @@ const (
 
 // Init must be called before any other function. It initializes
 // configuration and termbox.
-func Init() error {
+func Init(version string) error {
+	Version = version
 	if err := initConfig(); err != nil {
 		return err
 	}

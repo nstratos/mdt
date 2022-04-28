@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 package main
@@ -115,7 +116,7 @@ func forEachBinTarget(bin binary, fn binaryFunc) {
 // buildBinary builds a binary for a certain operating system and architecture
 // combination while using --ldflags to set the binary's version variable.
 func buildBinary(bin binary, OS, arch string) {
-	ldflags := fmt.Sprintf("--ldflags=-X github.com/nstratos/mdt/ui.Version=%s", bin.version)
+	ldflags := fmt.Sprintf("--ldflags=-s -w -X main.version=%s", bin.version)
 	cmd := exec.Command("go", "build", ldflags, "-o", bin.Name(OS, arch))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

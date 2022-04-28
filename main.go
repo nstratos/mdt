@@ -18,6 +18,7 @@ import (
 var captures = make([]ui.Capture, 0)
 
 var (
+	version     = "devel"
 	showVersion = flag.Bool("v", false, "print program version and exit")
 )
 
@@ -55,11 +56,11 @@ func logCaptures() error {
 func main() {
 	flag.Parse()
 	if *showVersion {
-		fmt.Printf("%s %s (runtime: %s)\n", os.Args[0], ui.Version, runtime.Version())
+		fmt.Printf("%s %s (runtime: %s)\n", os.Args[0], version, runtime.Version())
 		os.Exit(0)
 	}
 
-	if err := ui.Init(); err != nil {
+	if err := ui.Init(version); err != nil {
 		log.Println("Could not initialize: ", err)
 		if werr := ioutil.WriteFile("debug.txt", []byte(fmt.Sprintf("%s", err)), 0644); werr != nil {
 			log.Fatalln(werr)
