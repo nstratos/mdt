@@ -1,0 +1,25 @@
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+    goarch:
+      - 386
+      - amd64
+    binary: "mdt{{ .Version }}.{{ .Os }}-{{ .Arch }}"
+    no_unique_dist_dir: true
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'

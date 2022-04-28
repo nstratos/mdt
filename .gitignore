@@ -3,3 +3,4 @@ mdt
 mdt*
 *.txt
 config.json
+dist/
